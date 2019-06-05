@@ -246,6 +246,21 @@ class GeocubesPlugin:
         QgsMessageLog.logMessage('State now: '+str(state),
                                  'geocubes_plugin',
                                  Qgis.Info)
+        if state == 0:
+            self.stateNegative(cbox)
+        elif state == 2:
+            self.statePositive(cbox)
+    
+            
+    def stateNegative(self, cbox):
+        QgsMessageLog.logMessage('Row of this cbox: '+str(cbox.row()),
+                                 'geocubes_plugin',
+                                 Qgis.Info)
+    
+    def statePositive(self, cbox):
+        QgsMessageLog.logMessage('Row of this cbox: '+str(cbox.row()),
+                                 'geocubes_plugin',
+                                 Qgis.Info)
             
     def getData(self):
         extent = self.getExtent()
@@ -287,7 +302,7 @@ class GeocubesPlugin:
             self.table.setSizeAdjustPolicy(
                     QAbstractScrollArea.AdjustToContents)
             #self.table.itemChanged.connect(lambda:self.checkboxState(item))
-            self.table.itemChanged.connect(self.checkboxState())
+            self.table.itemChanged.connect(self.checkboxState)
             self.dlg.getContents.clicked.connect(self.setToTable)
             self.extent_box = self.dlg.mExtentGroupBox
             self.resolution_box = self.dlg.resolutionBox
