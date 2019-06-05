@@ -200,6 +200,9 @@ class GeocubesPlugin:
         return dataset_list
     
     def setToTable(self):
+        try: self.table.itemChanged.disconnect() 
+        except Exception: pass
+    
         datasets = self.getDatasets()
         
         self.table.setColumnCount(4)
@@ -209,28 +212,36 @@ class GeocubesPlugin:
         for i, dataset in enumerate(datasets):
             # entries in the datasets are separated by commas
             dataset_split = dataset.split(',')
-            name = dataset_split[0]
+            label = dataset_split[0]
+            name = dataset_split[1]
             years = dataset_split[2]
             maxres = dataset_split[5]
             
             years_split = years.split('.')
             
             for year in years_split:
-                name_entry = QTableWidgetItem(name)
-                name_entry.setFlags(Qt.NoItemFlags)
+                label_entry = QTableWidgetItem(label)
+                label_entry.setFlags(Qt.NoItemFlags)
                 maxres_entry = QTableWidgetItem(maxres)
                 maxres_entry.setFlags(Qt.NoItemFlags)
                 checkbox_entry = QTableWidgetItem()
+                year_entry = QTableWidgetItem(year)
+                year_entry.setFlags(Qt.NoItemFlags)
+                
                 checkbox_entry.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
                 checkbox_entry.setCheckState(Qt.Unchecked)
                 
                 row_count = self.table.rowCount()
+                
+                # this is done because we don't want the name on the table
+                key = label + ";" + year
+                value = name + ";"+ year
+                
+                self.datasets_all[key] = value
 
                 
                 #self.table.insertRow(row_count-1)
-                self.table.setItem(row_count-1, 0, name_entry)
-                year_entry = QTableWidgetItem(year)
-                year_entry.setFlags(Qt.NoItemFlags)
+                self.table.setItem(row_count-1, 0, label_entry)
                 self.table.setItem(row_count-1, 1, year_entry)
                 self.table.setItem(row_count-1, 2, maxres_entry)
                 
@@ -239,7 +250,14 @@ class GeocubesPlugin:
                 
                 if i < len(datasets)-1:
                     self.table.setRowCount(row_count+1)
-            self.table.resizeColumnsToContents()
+        self.table.resizeColumnsToContents()
+        self.table.itemChanged.connect(self.checkboxState)
+        self.table.itemChanged.connect(self.updateText)
+        
+    def updateText(self):
+        self.layer_count_text.setText('You have selected ' +
+                                      str(len(self.datasets_to_download))+ 
+                                      ' layer(s)')
             
     def checkboxState(self, cbox):
         state = cbox.checkState()
@@ -253,14 +271,40 @@ class GeocubesPlugin:
     
             
     def stateNegative(self, cbox):
-        QgsMessageLog.logMessage('Row of this cbox: '+str(cbox.row()),
+        box_row = cbox.row()
+        label_item = self.table.item(box_row, 0)
+        label_text = label_item.text()
+        
+        year_item = self.table.item(box_row, 1)
+        year_text = year_item.text()
+        
+        dataset_key = label_text + ";" + year_text
+        
+        if dataset_key in self.datasets_to_download:
+            self.datasets_to_download.remove(dataset_key)
+        
+        QgsMessageLog.logMessage('Deleted key: '+ dataset_key,
                                  'geocubes_plugin',
                                  Qgis.Info)
     
     def statePositive(self, cbox):
-        QgsMessageLog.logMessage('Row of this cbox: '+str(cbox.row()),
+        box_row = cbox.row()
+        label_item = self.table.item(box_row, 0)
+        label_text = label_item.text()
+        
+        year_item = self.table.item(box_row, 1)
+        year_text = year_item.text()
+        
+        dataset_key = label_text + ";" + year_text
+        self.datasets_to_download.append(dataset_key)
+        
+        
+        QgsMessageLog.logMessage('Appended key: ' + dataset_key,
                                  'geocubes_plugin',
                                  Qgis.Info)
+        
+    def deleteDownloads(self):
+        self.datasets_to_download.clear()
             
     def getData(self):
         extent = self.getExtent()
@@ -301,9 +345,8 @@ class GeocubesPlugin:
             self.table = self.dlg.tableWidget
             self.table.setSizeAdjustPolicy(
                     QAbstractScrollArea.AdjustToContents)
-            #self.table.itemChanged.connect(lambda:self.checkboxState(item))
-            self.table.itemChanged.connect(self.checkboxState)
             self.dlg.getContents.clicked.connect(self.setToTable)
+            self.dlg.getContents.clicked.connect(self.deleteDownloads)
             self.extent_box = self.dlg.mExtentGroupBox
             self.resolution_box = self.dlg.resolutionBox
             self.resolution_box.activated.connect(self.setResolution)
@@ -311,6 +354,9 @@ class GeocubesPlugin:
             self.data_button.clicked.connect(self.getData)
             self.bBoxButton = self.dlg.getMapLayerBbox
             self.bBoxButton.clicked.connect(self.getExtent)
+            
+            self.layer_count_text = self.dlg.layerCountText
+
             
             self.canvas = self.iface.mapCanvas()
             
@@ -320,7 +366,8 @@ class GeocubesPlugin:
         self.resolution_box.setCurrentIndex(6)
         self.resolution = self.resolution_box.currentText()
         
-        self.downloadables = []
+        self.datasets_all = {}
+        self.datasets_to_download = []
         
         # initialising the extent box
         proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
@@ -329,6 +376,8 @@ class GeocubesPlugin:
         self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
         self.extent_box.setCurrentExtent(og_extent, proj_crs)
         self.extent_box.setOutputCrs(proj_crs)
+        
+        self.layer_count_text.setText('You have selected 0 layer(s)')
         
         # make sure the table is empty on restart
         self.table.clear()
