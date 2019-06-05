@@ -217,7 +217,9 @@ class GeocubesPlugin:
             
             for year in years_split:
                 name_entry = QTableWidgetItem(name)
+                name_entry.setFlags(Qt.NoItemFlags)
                 maxres_entry = QTableWidgetItem(maxres)
+                maxres_entry.setFlags(Qt.NoItemFlags)
                 checkbox_entry = QTableWidgetItem()
                 checkbox_entry.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
                 checkbox_entry.setCheckState(Qt.Unchecked)
@@ -228,15 +230,22 @@ class GeocubesPlugin:
                 #self.table.insertRow(row_count-1)
                 self.table.setItem(row_count-1, 0, name_entry)
                 year_entry = QTableWidgetItem(year)
+                year_entry.setFlags(Qt.NoItemFlags)
                 self.table.setItem(row_count-1, 1, year_entry)
                 self.table.setItem(row_count-1, 2, maxres_entry)
                 
                 self.table.setItem(row_count-1, 3, checkbox_entry)
                 
+                
                 if i < len(datasets)-1:
                     self.table.setRowCount(row_count+1)
-                    
             self.table.resizeColumnsToContents()
+            
+    def checkboxState(self, cbox):
+        state = cbox.checkState()
+        QgsMessageLog.logMessage('State now: '+str(state),
+                                 'geocubes_plugin',
+                                 Qgis.Info)
             
     def getData(self):
         extent = self.getExtent()
@@ -277,6 +286,8 @@ class GeocubesPlugin:
             self.table = self.dlg.tableWidget
             self.table.setSizeAdjustPolicy(
                     QAbstractScrollArea.AdjustToContents)
+            #self.table.itemChanged.connect(lambda:self.checkboxState(item))
+            self.table.itemChanged.connect(self.checkboxState())
             self.dlg.getContents.clicked.connect(self.setToTable)
             self.extent_box = self.dlg.mExtentGroupBox
             self.resolution_box = self.dlg.resolutionBox
@@ -293,6 +304,8 @@ class GeocubesPlugin:
         self.resolution_box.addItems(str(resolution) for resolution in resolutions)
         self.resolution_box.setCurrentIndex(6)
         self.resolution = self.resolution_box.currentText()
+        
+        self.downloadables = []
         
         # initialising the extent box
         proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
