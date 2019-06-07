@@ -23,9 +23,10 @@
 """
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QTableWidgetItem, QCheckBox, QAbstractScrollArea
+from PyQt5.QtWidgets import QAction, QTableWidgetItem, QAbstractScrollArea
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
                        QgsMessageLog, Qgis)
+from qgis.gui import QgsBusyIndicatorDialog
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -312,19 +313,28 @@ class GeocubesPlugin:
     def getData(self):
         dataset_parameters = self.getValues()
         extent = self.getExtent()
+        done = False
         
-        for parameter in dataset_parameters:
-            name_and_year = parameter.split(';')
+        while not done:
+            busy_dialog = QgsBusyIndicatorDialog("Fetching data...")
+            #self.iface.mainWindow()
+            busy_dialog.show()
+            for parameter in dataset_parameters:
+                name_and_year = parameter.split(';')
             
-            data_url = (self.url_base + "/clip/" + self.resolution +
+                data_url = (self.url_base + "/clip/" + self.resolution +
                         "/"+name_and_year[0]+"/bbox:" + self.formatExtent(extent)
                         + "/" + name_and_year[1])
-            raster_layer = QgsRasterLayer(data_url, parameter)
+                raster_layer = QgsRasterLayer(data_url, parameter)
         
-            if not raster_layer.isValid():
-                raise Exception('Raster layer is invalid.')
-            else:
-                QgsProject.instance().addMapLayer(raster_layer)
+                if not raster_layer.isValid():
+                    raise Exception('Raster layer is invalid.')
+                else:
+                    QgsProject.instance().addMapLayer(raster_layer)
+            busy_dialog.close()
+            done = True
+            
+        
             
     def getExtent(self):
         output_extent = self.extent_box.outputExtent()
@@ -361,8 +371,6 @@ class GeocubesPlugin:
             self.resolution_box.activated.connect(self.setResolution)
             self.data_button = self.dlg.getDataButton
             self.data_button.clicked.connect(self.getData)
-            self.bBoxButton = self.dlg.getMapLayerBbox
-            self.bBoxButton.clicked.connect(self.getExtent)
             
             self.layer_count_text = self.dlg.layerCountText
 
