@@ -185,6 +185,7 @@ class GeocubesPlugin:
 
     def setResolution(self):
         self.resolution = self.resolution_box.currentText()
+        
             
     def getDatasets(self):
         response = requests.get(self.url_base + "/info/getDatasets", timeout=10)
@@ -255,15 +256,16 @@ class GeocubesPlugin:
         self.table.itemChanged.connect(self.updateText)
         
     def updateText(self):
-        self.layer_count_text.setText('You have selected ' +
-                                      str(len(self.datasets_to_download))+ 
-                                      ' layer(s)')
+        if len(self.datasets_to_download) == 1:
+            self.layer_count_text.setText(str(len(self.datasets_to_download))+
+                                        ' layer selected')
+        else:
+            self.layer_count_text.setText(str(len(self.datasets_to_download))+
+                                        ' layers selected')
             
     def checkboxState(self, cbox):
         state = cbox.checkState()
-        QgsMessageLog.logMessage('State now: '+str(state),
-                                 'geocubes_plugin',
-                                 Qgis.Info)
+
         if state == 0:
             self.stateNegative(cbox)
         elif state == 2:
@@ -282,10 +284,6 @@ class GeocubesPlugin:
         
         if dataset_key in self.datasets_to_download:
             self.datasets_to_download.remove(dataset_key)
-        
-        QgsMessageLog.logMessage('Deleted key: '+ dataset_key,
-                                 'geocubes_plugin',
-                                 Qgis.Info)
     
     def statePositive(self, cbox):
         box_row = cbox.row()
@@ -299,23 +297,34 @@ class GeocubesPlugin:
         self.datasets_to_download.append(dataset_key)
         
         
-        QgsMessageLog.logMessage('Appended key: ' + dataset_key,
-                                 'geocubes_plugin',
-                                 Qgis.Info)
-        
     def deleteDownloads(self):
         self.datasets_to_download.clear()
+        
+    def getValues(self):
+        values = []
+        
+        for dataset_key in self.datasets_to_download:
+            value = self.datasets_all[dataset_key]
+            values.append(value)
+            
+        return values
             
     def getData(self):
+        dataset_parameters = self.getValues()
         extent = self.getExtent()
-        data_url = (self.url_base + "/clip/" + self.resolution +
-                    "/mvmi-koivu/bbox:" + self.formatExtent(extent) + "/2009")
-        raster_layer = QgsRasterLayer(data_url, "fetched_rlayer")
         
-        if not raster_layer.isValid():
-            raise Exception('Raster layer is invalid.')
-        else:
-            QgsProject.instance().addMapLayer(raster_layer)
+        for parameter in dataset_parameters:
+            name_and_year = parameter.split(';')
+            
+            data_url = (self.url_base + "/clip/" + self.resolution +
+                        "/"+name_and_year[0]+"/bbox:" + self.formatExtent(extent)
+                        + "/" + name_and_year[1])
+            raster_layer = QgsRasterLayer(data_url, parameter)
+        
+            if not raster_layer.isValid():
+                raise Exception('Raster layer is invalid.')
+            else:
+                QgsProject.instance().addMapLayer(raster_layer)
             
     def getExtent(self):
         output_extent = self.extent_box.outputExtent()
@@ -377,7 +386,7 @@ class GeocubesPlugin:
         self.extent_box.setCurrentExtent(og_extent, proj_crs)
         self.extent_box.setOutputCrs(proj_crs)
         
-        self.layer_count_text.setText('You have selected 0 layer(s)')
+        self.layer_count_text.setText('0 layers selected')
         
         # make sure the table is empty on restart
         self.table.clear()
