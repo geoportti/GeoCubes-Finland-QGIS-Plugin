@@ -169,7 +169,7 @@
          </property>
         </spacer>
        </item>
-       <item row="5" column="0">
+       <item row="6" column="0">
         <widget class="QPushButton" name="getDataButton">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
@@ -195,7 +195,7 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
+       <item row="6" column="1">
         <widget class="QPushButton" name="closeButton">
          <property name="maximumSize">
           <size>
@@ -208,6 +208,20 @@
          </property>
          <property name="text">
           <string>Close</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QRadioButton" name="saveToTempButton">
+         <property name="text">
+          <string>Use as temp layer</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QRadioButton" name="saveToDiskButton">
+         <property name="text">
+          <string>Save layer to disk</string>
          </property>
         </widget>
        </item>

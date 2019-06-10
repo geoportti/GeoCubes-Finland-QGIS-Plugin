@@ -367,52 +367,86 @@ class GeocubesPlugin:
         self.updateCountText()
         
     def getValues(self):
-        """Extracts all """
+        """Extracts all values (name/year pairs separated by a semicolon)
+            Returns them as a list"""
         values = []
         
         for dataset_key in self.datasets_to_download:
+            # get value by passing the key from the download list
             value = self.datasets_all[dataset_key]
             values.append(value)
             
         return values
             
     def getData(self):
+        """
+        Downloads raster datasets from Geocubes servers as selected by the user
+        This is done by forming an url comprised of layer names, years, extent
+        and resolution. Either directly creates a QGis raster layer by 
+        passing the url as data source (referred to as temp layer, though strictly
+        speaking I don't believe it's saved to some temp folder. Not sure though).
+        Another option is to save layers to disk and passing that as the source.
+        [SAVE TO DISK TO BE IMPLEMENTED]
+        """
+        # nothing will be downloaded if nothing is selected. Notifies user. Else continue
         if(len(self.datasets_to_download) == 0):
             self.updateDataText("Please select one or more layers!")
         else:
+            # get info that's passed to the Geocubes server
             dataset_parameters = self.getValues()
             extent = self.getExtent()
+            
+            # this is needed to form a while loop
             done = False
-        
+            
+            # while datasets are downloaded, an indicator will be shown
             busy_dialog = QgsBusyIndicatorDialog("Fetching data...", self.dlg)
             busy_dialog.show()
+            
+            # a simple count of succesful downloads
+            successful_layers = 0
         
             while not done:
-
+                # 1 to n loops to download all selected data
                 for parameter in dataset_parameters:
+                    # name and year are stored as a string and separeted by ';'
                     name_and_year = parameter.split(';')
-            
+                    
+                    # forming the url that's passed to server
+                    # see http://86.50.168.160/geocubes/examples/ 
+                    # for examples of forming this url
                     data_url = (self.url_base + "/clip/" + self.resolution +
                         "/"+name_and_year[0]+"/bbox:" + self.formatExtent(extent)
                         + "/" + name_and_year[1])
+                    
+                    # creating raster layer by passing the url and giving
+                    # paramter (name;year) as layer name
                     raster_layer = QgsRasterLayer(data_url, parameter)
-        
+                    
+                    # if data query fails, inform user. If not, add to Qgis
                     if not raster_layer.isValid():
-                        self.updateDataText("Layer is invalid! Please change " +
-                                            "parameters or try again later")
+                        self.iface.messageBar().pushMessage("Layer invalid", 
+                                        parameter+" failed to download", level=Qgis.Warning,
+                                        duration = 7)
                     else:
                         QgsProject.instance().addMapLayer(raster_layer)
-                        
+                        successful_layers += 1
+                
+                # once all layers are downloaded, inform how many were succesful
+                self.updateDataText(str(successful_layers) + "/" +
+                                    str(len(dataset_parameters))+ " layer(s)" +
+                                    " successfully downloaded")
                 busy_dialog.close()
                 done = True
             
         
             
     def getExtent(self):
+        """Current extent shown in the extent groupbox
+        Returns a rectangle object"""
         output_extent = self.extent_box.outputExtent()
         return output_extent
         """
-        print_string = "The current extent: {}".format(output_extent)
         
         QgsMessageLog.logMessage(output_extent,
                                  'geocubes_plugin',
@@ -420,6 +454,8 @@ class GeocubesPlugin:
         """
         
     def formatExtent(self,rectangle):
+        """The extent coordinates need to be in certain format for the url
+            This function's input is a Qgis rectangle and output a bbox string"""
         formatted_extent = (str(rectangle.xMinimum())+','+str(rectangle.yMinimum())
                             +','+str(rectangle.xMaximum())+','+str(rectangle.yMaximum()))
         return formatted_extent           
@@ -465,6 +501,10 @@ class GeocubesPlugin:
             # the data layers
             self.data_info_text = self.dlg.dataInfoText
             
+            # radio buttons for user to decide whether to get the data as 
+            # temporary layers or save the rasters to disc
+            self.save_temp_button = self.dlg.saveToTempButton
+            
             # QGIS canvas
             self.canvas = self.iface.mapCanvas()
         
@@ -497,8 +537,11 @@ class GeocubesPlugin:
         self.extent_box.setCurrentExtent(og_extent, proj_crs)
         self.extent_box.setOutputCrs(proj_crs)
         
-        # layer count is zero by default
+        # set default texts
         self.layer_count_text.setText('0 layers selected')
+        self.data_info_text.setText('Get datasets here')
+        
+        self.save_temp_button.setChecked(True)
         
         # make sure the table is empty on restart
         self.table.clear()
