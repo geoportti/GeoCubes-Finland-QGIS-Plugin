@@ -185,78 +185,124 @@ class GeocubesPlugin:
             self.iface.removeToolBarIcon(action)
 
     def setResolution(self):
+        """Resolution is set to be the one currently in the box"""
         self.resolution = self.resolution_box.currentText()
         
             
     def getDatasets(self):
+        """Sends a query to Geocubes and receives text describing the data.
+           Returns a list of strings containing the datasets"""
+        
+        # request info from the server: if no response in 10 seconds, timeout
         response = requests.get(self.url_base + "/info/getDatasets", timeout=10)
-
+        
+        # request status code indicates whether succesful: if not, raise an exception
         if (response.status_code >= 500):
             raise Exception('Server timed out')
-            
+        
+        # decode from bytes to string
         response_string = response.content.decode("utf-8")
 
-        # datasets are divided by semicolons: split at them
+        # datasets are divided by semicolons: split at semicolons
         dataset_list = response_string.split(';')
         
         return dataset_list
     
     def setToTable(self):
+        """
+        Activated when user clicks "Fetch datasets" button. This function
+        lists available data to the user and creates checkboxes that allow
+        the selection of said data. Also creates signals that cannot be
+        created on first start, like the signal emitted when clicking 
+        on a checkbox.
+        """
+        # if previous signals exist, i.e. the plugin is started multiple times,
+        # remove the connections. If none exist, pass
         try: self.table.itemChanged.disconnect() 
         except Exception: pass
-    
+        
+        # get a list of datasets
         datasets = self.getDatasets()
         
         self.table.setColumnCount(4)
+        # start with only 1 row, add more as needed
         self.table.setRowCount(1)
+        # set headers for all 4 columns
         self.table.setHorizontalHeaderLabels(['Label', 'Year', 'Maxres (m)', 'Select'])
         
+        # loop through all the datasets
         for i, dataset in enumerate(datasets):
             # entries in the datasets are separated by commas
             dataset_split = dataset.split(',')
+            
+            # each entry has seven pieces of info, but only four are needed
+            
+            # label = a plain language name for the dataset: can have spaces etc.
             label = dataset_split[0]
+            
+            # name = version of label used in queries etc.
             name = dataset_split[1]
             years = dataset_split[2]
+            # maxres = maximum resolution of the dataset in meters
             maxres = dataset_split[5]
             
+            # years are separated by periods
             years_split = years.split('.')
             
+            # one dataset may have data from multiple years
+            # this is handled by adding each year on its own row
             for year in years_split:
+                # the strings must be transformed to Qt Items
                 label_entry = QTableWidgetItem(label)
+                # the items must NOT be selectable or otherwise modifiable
                 label_entry.setFlags(Qt.NoItemFlags)
                 maxres_entry = QTableWidgetItem(maxres)
                 maxres_entry.setFlags(Qt.NoItemFlags)
-                checkbox_entry = QTableWidgetItem()
                 year_entry = QTableWidgetItem(year)
                 year_entry.setFlags(Qt.NoItemFlags)
                 
+                # create a checkbox for each row
+                checkbox_entry = QTableWidgetItem()
                 checkbox_entry.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                # start with checkbox unchecked
                 checkbox_entry.setCheckState(Qt.Unchecked)
                 
+                # get the current row count from the table
                 row_count = self.table.rowCount()
                 
-                # this is done because we don't want the name on the table
+                """Next, add info of the dataset to our dictionary. The dict
+                will later be accessed via the list of downloadable datasets:
+                it will house the keys. This way may seem redundant, but it's done
+                since the name variable isn't needed on the table but is later
+                necessary for the queries"""
                 key = label + ";" + year
                 value = name + ";"+ year
                 
                 self.datasets_all[key] = value
 
                 
-                #self.table.insertRow(row_count-1)
+                # add the previously created items on the table
                 self.table.setItem(row_count-1, 0, label_entry)
                 self.table.setItem(row_count-1, 1, year_entry)
                 self.table.setItem(row_count-1, 2, maxres_entry)
-                
                 self.table.setItem(row_count-1, 3, checkbox_entry)
                 
-                
+                # if there're datasets left, add a new row
                 if i < len(datasets)-1:
                     self.table.setRowCount(row_count+1)
-        self.table.resizeColumnsToContents()
-        self.table.itemChanged.connect(self.checkboxState)
-        self.table.itemChanged.connect(self.updateText)
         
-    def updateText(self):
+        # fit column sizes to the items
+        self.table.resizeColumnsToContents()
+        
+        # when an item's content are changed, or in this case, when a checkbox
+        # is checked or unchecked, run the function
+        self.table.itemChanged.connect(self.checkboxState)
+        
+        # add or subtract from the layer count
+        self.table.itemChanged.connect(self.updateCountText)
+        
+    def updateCountText(self):
+        """Activated when checkbox states change. Updates the count accordingly"""
         if len(self.datasets_to_download) == 1:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
                                         ' layer selected')
@@ -264,9 +310,15 @@ class GeocubesPlugin:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
                                         ' layers selected')
             
+    def updateDataText(self, msg):
+        self.data_info_text.setText(msg)
+            
     def checkboxState(self, cbox):
+        """itemChanged signal passes the checkbox (cbox). This function
+           checks whether cbox was checked or unchecked and acts accordingly"""
         state = cbox.checkState()
-
+        
+        # 0 = unchecked, 2 = checked
         if state == 0:
             self.stateNegative(cbox)
         elif state == 2:
@@ -274,6 +326,12 @@ class GeocubesPlugin:
     
             
     def stateNegative(self, cbox):
+        """This function is called in case the cbox is unchecked.
+           Removes the dataset in question from the list"""
+           
+        # cbox has a function to access its row number in the table
+        # this is used to access label and year items,
+        # since they're on the same row and their column number are known
         box_row = cbox.row()
         label_item = self.table.item(box_row, 0)
         label_text = label_item.text()
@@ -281,12 +339,16 @@ class GeocubesPlugin:
         year_item = self.table.item(box_row, 1)
         year_text = year_item.text()
         
+        # create key in the same format as before
         dataset_key = label_text + ";" + year_text
         
+        # if key already exists, remove it
         if dataset_key in self.datasets_to_download:
             self.datasets_to_download.remove(dataset_key)
     
     def statePositive(self, cbox):
+        """This function is called in case the cbox is checked.
+           Adds the dataset in question from the list. See above for details"""
         box_row = cbox.row()
         label_item = self.table.item(box_row, 0)
         label_text = label_item.text()
@@ -299,9 +361,13 @@ class GeocubesPlugin:
         
         
     def deleteDownloads(self):
+        """Called when datasets are fetched more than once, which empties the list.
+           Also updates layer count"""
         self.datasets_to_download.clear()
+        self.updateCountText()
         
     def getValues(self):
+        """Extracts all """
         values = []
         
         for dataset_key in self.datasets_to_download:
@@ -311,28 +377,34 @@ class GeocubesPlugin:
         return values
             
     def getData(self):
-        dataset_parameters = self.getValues()
-        extent = self.getExtent()
-        done = False
+        if(len(self.datasets_to_download) == 0):
+            self.updateDataText("Please select one or more layers!")
+        else:
+            dataset_parameters = self.getValues()
+            extent = self.getExtent()
+            done = False
         
-        while not done:
-            busy_dialog = QgsBusyIndicatorDialog("Fetching data...")
-            #self.iface.mainWindow()
+            busy_dialog = QgsBusyIndicatorDialog("Fetching data...", self.dlg)
             busy_dialog.show()
-            for parameter in dataset_parameters:
-                name_and_year = parameter.split(';')
+        
+            while not done:
+
+                for parameter in dataset_parameters:
+                    name_and_year = parameter.split(';')
             
-                data_url = (self.url_base + "/clip/" + self.resolution +
+                    data_url = (self.url_base + "/clip/" + self.resolution +
                         "/"+name_and_year[0]+"/bbox:" + self.formatExtent(extent)
                         + "/" + name_and_year[1])
-                raster_layer = QgsRasterLayer(data_url, parameter)
+                    raster_layer = QgsRasterLayer(data_url, parameter)
         
-                if not raster_layer.isValid():
-                    raise Exception('Raster layer is invalid.')
-                else:
-                    QgsProject.instance().addMapLayer(raster_layer)
-            busy_dialog.close()
-            done = True
+                    if not raster_layer.isValid():
+                        self.updateDataText("Layer is invalid! Please change " +
+                                            "parameters or try again later")
+                    else:
+                        QgsProject.instance().addMapLayer(raster_layer)
+                        
+                busy_dialog.close()
+                done = True
             
         
             
@@ -355,45 +427,77 @@ class GeocubesPlugin:
     def run(self):
         """Run method that performs all the real work"""
 
-        # Create the dialog with elements (after translation) and keep reference
-        # Only create GUI ONCE in callback, so that it will only load when the plugin is started
+        # if the plugin is started for the first time,
+        # create necessary variables and connect signals to slots
+        # signal/slot connection must only be made once;
+        # unless disconnected elsewhere
         if self.first_start == True:
             self.first_start = False
+            # the ui
             self.dlg = GeocubesPluginDialog()
+            
+            # current base url of the Geocubes project. Modify if url changes
             self.url_base = "http://86.50.168.160/geocubes"
+            
+            # table to house the datasets: also add policies to fit the data
+            # better on the table
             self.table = self.dlg.tableWidget
             self.table.setSizeAdjustPolicy(
                     QAbstractScrollArea.AdjustToContents)
+            
+            # connect click of the fetch data layers button to functions
             self.dlg.getContents.clicked.connect(self.setToTable)
             self.dlg.getContents.clicked.connect(self.deleteDownloads)
+            
             self.extent_box = self.dlg.mExtentGroupBox
+            
+            # box housing a drop-down list of possible raster resolutions
             self.resolution_box = self.dlg.resolutionBox
             self.resolution_box.activated.connect(self.setResolution)
+            
             self.data_button = self.dlg.getDataButton
             self.data_button.clicked.connect(self.getData)
             
+            # text that tells the user the current count of selected layers
             self.layer_count_text = self.dlg.layerCountText
-
             
+            # text that informs the user on things related to downloading
+            # the data layers
+            self.data_info_text = self.dlg.dataInfoText
+            
+            # QGIS canvas
             self.canvas = self.iface.mapCanvas()
-            
+        
+        # list of possible resolutions. Update if this changes
         resolutions = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
+        # empty the box when plugin is restarted
         self.resolution_box.clear()
         self.resolution_box.addItems(str(resolution) for resolution in resolutions)
+        # set '100' as the default selection
         self.resolution_box.setCurrentIndex(6)
+        
+        # this variable houses the currently selected resolution
         self.resolution = self.resolution_box.currentText()
         
+        # an empty dictionary to house all the fetched datasets
         self.datasets_all = {}
+        
+        # an empty list for only the datasets the user has selected
         self.datasets_to_download = []
         
         # initialising the extent box
+        # all the data is in ETRS89 / TM35FIN (EPSG:3067), 
+        # therefore that's the default crs
         proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
+        #current extent, or bounding box
         og_extent = self.canvas.extent()
         
+        # these three things must be set when initialising the extent box
         self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
         self.extent_box.setCurrentExtent(og_extent, proj_crs)
         self.extent_box.setOutputCrs(proj_crs)
         
+        # layer count is zero by default
         self.layer_count_text.setText('0 layers selected')
         
         # make sure the table is empty on restart
@@ -401,10 +505,13 @@ class GeocubesPlugin:
         
         # show the dialog
         self.dlg.show()
+        
         # Run the dialog event loop
+        """
         result = self.dlg.exec_()
         # See if OK was pressed
         if result:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
             pass
+        """

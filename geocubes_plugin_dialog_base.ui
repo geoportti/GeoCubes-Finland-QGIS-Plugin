@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Geocubes_plugin</string>
+   <string>Geocubes Finland plugin</string>
   </property>
   <property name="layoutDirection">
    <enum>Qt::LeftToRight</enum>
@@ -104,7 +104,7 @@
      </item>
      <item>
       <layout class="QFormLayout" name="formLayout">
-       <item row="2" column="1">
+       <item row="0" column="1">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -117,18 +117,24 @@
          </property>
         </spacer>
        </item>
-       <item row="3" column="0">
+       <item row="1" column="0">
         <widget class="QLabel" name="label_2">
          <property name="text">
           <string>Resolution (m): </string>
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
+       <item row="1" column="1">
         <widget class="QComboBox" name="resolutionBox">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="maximumSize">
           <size>
-           <width>250</width>
+           <width>300</width>
            <height>16777215</height>
           </size>
          </property>
@@ -137,7 +143,7 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="3" column="1">
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -150,7 +156,7 @@
          </property>
         </spacer>
        </item>
-       <item row="5" column="1">
+       <item row="4" column="1">
         <spacer name="verticalSpacer_3">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -163,7 +169,33 @@
          </property>
         </spacer>
        </item>
-       <item row="6" column="1">
+       <item row="5" column="0">
+        <widget class="QPushButton" name="getDataButton">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+           <horstretch>10</horstretch>
+           <verstretch>10</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>120</width>
+           <height>60</height>
+          </size>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>8</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Get data</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
         <widget class="QPushButton" name="closeButton">
          <property name="maximumSize">
           <size>
@@ -179,33 +211,14 @@
          </property>
         </widget>
        </item>
-       <item row="6" column="0">
-        <widget class="QPushButton" name="getDataButton">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-           <horstretch>10</horstretch>
-           <verstretch>10</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>800</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="font">
-          <font>
-           <pointsize>8</pointsize>
-           <weight>75</weight>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Get data</string>
-         </property>
-        </widget>
-       </item>
       </layout>
+     </item>
+     <item>
+      <widget class="QLabel" name="dataInfoText">
+       <property name="text">
+        <string>Get datasets here</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
