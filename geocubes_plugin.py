@@ -199,15 +199,15 @@ class GeocubesPlugin:
         # request status code indicates whether succesful: if not, raise an exception
         if (response.status_code >= 500):
             raise Exception('Server timed out')
-        
+
         # decode from bytes to string
         response_string = response.content.decode("utf-8")
 
         # datasets are divided by semicolons: split at semicolons
         dataset_list = response_string.split(';')
-        
+
         return dataset_list
-    
+
     def setToTable(self):
         """
         Activated when user clicks "Fetch datasets" button. This function
@@ -220,32 +220,32 @@ class GeocubesPlugin:
         # remove the connections. If none exist, pass
         try: self.table.itemChanged.disconnect() 
         except Exception: pass
-        
+
         # get a list of datasets
         datasets = self.getDatasets()
-        
+
         self.table.setColumnCount(4)
         # start with only 1 row, add more as needed
         self.table.setRowCount(1)
         # set headers for all 4 columns
         self.table.setHorizontalHeaderLabels(['Label', 'Year', 'Maxres (m)', 'Select'])
-        
+
         # loop through all the datasets
         for i, dataset in enumerate(datasets):
             # entries in the datasets are separated by commas
             dataset_split = dataset.split(',')
-            
+
             # each entry has seven pieces of info, but only four are needed
-            
+
             # label = a plain language name for the dataset: can have spaces etc.
             label = dataset_split[0]
-            
+
             # name = version of label used in queries etc.
             name = dataset_split[1]
             years = dataset_split[2]
             # maxres = maximum resolution of the dataset in meters
             maxres = dataset_split[5]
-            
+
             # years are separated by periods
             years_split = years.split('.')
             
@@ -305,10 +305,10 @@ class GeocubesPlugin:
         """Activated when checkbox states change. Updates the count accordingly"""
         if len(self.datasets_to_download) == 1:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
-                                        ' layer selected')
+                                          ' layer selected')
         else:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
-                                        ' layers selected')
+                                          ' layers selected')
             
     def updateDataText(self, msg):
         self.data_info_text.setText(msg)
@@ -323,8 +323,7 @@ class GeocubesPlugin:
             self.stateNegative(cbox)
         elif state == 2:
             self.statePositive(cbox)
-    
-            
+
     def stateNegative(self, cbox):
         """This function is called in case the cbox is unchecked.
            Removes the dataset in question from the list"""
@@ -352,14 +351,13 @@ class GeocubesPlugin:
         box_row = cbox.row()
         label_item = self.table.item(box_row, 0)
         label_text = label_item.text()
-        
+
         year_item = self.table.item(box_row, 1)
         year_text = year_item.text()
-        
+
         dataset_key = label_text + ";" + year_text
         self.datasets_to_download.append(dataset_key)
-        
-        
+
     def deleteDownloads(self):
         """Called when datasets are fetched more than once, which empties the list.
            Also updates layer count"""
@@ -427,7 +425,7 @@ class GeocubesPlugin:
                     if not raster_layer.isValid():
                         self.iface.messageBar().pushMessage("Layer invalid", 
                                         parameter+" failed to download", level=Qgis.Warning,
-                                        duration = 7)
+                                        duration = 9)
                     else:
                         QgsProject.instance().addMapLayer(raster_layer)
                         successful_layers += 1
@@ -467,7 +465,7 @@ class GeocubesPlugin:
         # create necessary variables and connect signals to slots
         # signal/slot connection must only be made once;
         # unless disconnected elsewhere
-        if self.first_start == True:
+        if self.first_start is True:
             self.first_start = False
             # the ui
             self.dlg = GeocubesPluginDialog()
@@ -501,7 +499,7 @@ class GeocubesPlugin:
             # the data layers
             self.data_info_text = self.dlg.dataInfoText
             
-            # radio buttons for user to decide whether to get the data as 
+            # radio buttons for user to decide whether to get the data as
             # temporary layers or save the rasters to disc
             self.save_temp_button = self.dlg.saveToTempButton
             
@@ -529,9 +527,9 @@ class GeocubesPlugin:
         # all the data is in ETRS89 / TM35FIN (EPSG:3067), 
         # therefore that's the default crs
         proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
-        #current extent, or bounding box
+        # current extent, or bounding box
         og_extent = self.canvas.extent()
-        
+
         # these three things must be set when initialising the extent box
         self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
         self.extent_box.setCurrentExtent(og_extent, proj_crs)
