@@ -437,7 +437,10 @@ class GeocubesPlugin:
                 busy_dialog.close()
                 done = True
             
-        
+    
+    def updateExtent(self):
+        self.extent_box.setCurrentExtent(self.canvas.extent(), self.proj_crs)
+        self.extent_box.setOutputExtentFromCurrent()
             
     def getExtent(self):
         """Current extent shown in the extent groupbox
@@ -483,7 +486,23 @@ class GeocubesPlugin:
             self.dlg.getContents.clicked.connect(self.setToTable)
             self.dlg.getContents.clicked.connect(self.deleteDownloads)
             
+            # QGIS canvas
+            self.canvas = self.iface.mapCanvas()
+            
+            # initialising the extent box
+            # all the data is in ETRS89 / TM35FIN (EPSG:3067), 
+            # therefore that's the default crs
             self.extent_box = self.dlg.mExtentGroupBox
+            self.proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
+            # current extent, or bounding box
+            og_extent = self.canvas.extent()
+
+            # these three things must be set when initialising the extent box
+            self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
+            self.extent_box.setCurrentExtent(og_extent, self.proj_crs)
+            self.extent_box.setOutputCrs(self.proj_crs)
+            
+            #self.extent_box.extentChanged.connect(self.updateExtent)
             
             # box housing a drop-down list of possible raster resolutions
             self.resolution_box = self.dlg.resolutionBox
@@ -503,8 +522,7 @@ class GeocubesPlugin:
             # temporary layers or save the rasters to disc
             self.save_temp_button = self.dlg.saveToTempButton
             
-            # QGIS canvas
-            self.canvas = self.iface.mapCanvas()
+
         
         # list of possible resolutions. Update if this changes
         resolutions = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
@@ -523,17 +541,8 @@ class GeocubesPlugin:
         # an empty list for only the datasets the user has selected
         self.datasets_to_download = []
         
-        # initialising the extent box
-        # all the data is in ETRS89 / TM35FIN (EPSG:3067), 
-        # therefore that's the default crs
-        proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
-        # current extent, or bounding box
-        og_extent = self.canvas.extent()
+        self.updateExtent()
 
-        # these three things must be set when initialising the extent box
-        self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
-        self.extent_box.setCurrentExtent(og_extent, proj_crs)
-        self.extent_box.setOutputCrs(proj_crs)
         
         # set default texts
         self.layer_count_text.setText('0 layers selected')
