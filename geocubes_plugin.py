@@ -426,7 +426,7 @@ class GeocubesPlugin:
                     # if data query fails, inform user. If not, add to Qgis
                     if not raster_layer.isValid():
                         self.iface.messageBar().pushMessage("Layer invalid", 
-                                        ''.join([name,year])+" failed to download", level=Qgis.Warning,
+                                        ''.join([name,'_',year])+" failed to download", level=Qgis.Warning,
                                         duration = 9)
                     else:
                         QgsProject.instance().addMapLayer(raster_layer)
@@ -498,14 +498,8 @@ class GeocubesPlugin:
             self.extent_box = self.dlg.mExtentGroupBox
             self.proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
             # current extent, or bounding box
-            og_extent = self.canvas.extent()
 
-            # these three things must be set when initialising the extent box
-            self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
-            self.extent_box.setCurrentExtent(og_extent, self.proj_crs)
-            self.extent_box.setOutputCrs(self.proj_crs)
-            
-            #self.extent_box.extentChanged.connect(self.updateExtent)
+
             
             # box housing a drop-down list of possible raster resolutions
             self.resolution_box = self.dlg.resolutionBox
@@ -543,6 +537,15 @@ class GeocubesPlugin:
         
         # an empty list for only the datasets the user has selected
         self.datasets_to_download = []
+        
+        self.canvas.setDestinationCrs(self.proj_crs)
+        
+        og_extent = self.canvas.extent()
+        
+        # these three things must be set when initialising the extent box
+        self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
+        self.extent_box.setCurrentExtent(og_extent, self.proj_crs)
+        self.extent_box.setOutputCrs(self.proj_crs)
         
         self.updateExtent()
 
