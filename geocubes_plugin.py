@@ -274,9 +274,10 @@ class GeocubesPlugin:
                 will later be accessed via the list of downloadable datasets:
                 it will house the keys. This way may seem redundant, but it's done
                 since the name variable isn't needed on the table but is later
-                necessary for the queries"""
+                necessary for the queries. Key is stored as a string and 
+                value as a tuple"""
                 key = label + ";" + year
-                value = name + ";"+ year
+                value = (name, year)
                 
                 self.datasets_all[key] = value
 
@@ -407,24 +408,25 @@ class GeocubesPlugin:
             while not done:
                 # 1 to n loops to download all selected data
                 for parameter in dataset_parameters:
-                    # name and year are stored as a string and separeted by ';'
-                    name_and_year = parameter.split(';')
+                    # accessing values, which are stored as tuples
+                    name = parameter[0]
+                    year = parameter[1]
                     
                     # forming the url that's passed to server
                     # see http://86.50.168.160/geocubes/examples/ 
                     # for examples of forming this url
                     data_url = (self.url_base + "/clip/" + self.resolution +
-                        "/"+name_and_year[0]+"/bbox:" + self.formatExtent(extent)
-                        + "/" + name_and_year[1])
+                        "/"+ name +"/bbox:" + self.formatExtent(extent)
+                        + "/" + year)
                     
                     # creating raster layer by passing the url and giving
                     # paramter (name;year) as layer name
-                    raster_layer = QgsRasterLayer(data_url, parameter)
+                    raster_layer = QgsRasterLayer(data_url, ''.join([name,year]))
                     
                     # if data query fails, inform user. If not, add to Qgis
                     if not raster_layer.isValid():
                         self.iface.messageBar().pushMessage("Layer invalid", 
-                                        parameter+" failed to download", level=Qgis.Warning,
+                                        ''.join([name,year])+" failed to download", level=Qgis.Warning,
                                         duration = 9)
                     else:
                         QgsProject.instance().addMapLayer(raster_layer)
@@ -488,6 +490,7 @@ class GeocubesPlugin:
             
             # QGIS canvas
             self.canvas = self.iface.mapCanvas()
+            self.canvas.extentsChanged.connect(self.updateExtent)
             
             # initialising the extent box
             # all the data is in ETRS89 / TM35FIN (EPSG:3067), 
