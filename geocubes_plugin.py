@@ -361,7 +361,7 @@ class GeocubesPlugin:
 
     def deleteDownloads(self):
         """Called when datasets are fetched more than once, which empties the list.
-           Also updates layer count"""
+           Also updates layer count text"""
         self.datasets_to_download.clear()
         self.updateCountText()
         
@@ -376,6 +376,27 @@ class GeocubesPlugin:
             values.append(value)
             
         return values
+    
+    def estimateFileSize(self):
+        ext = self.getExtent()
+        xmin = ext.xMinimum()
+        xmax = ext.xMaximum()
+        ymin = ext.yMinimum()
+        ymax = ext.yMaximum()
+        
+        pixelcount = (xmax-xmin)/int(self.resolution) * ((ymax-ymin)/ int(self.resolution))
+        
+        data_type = 16
+        
+        size_in_bits = pixelcount * data_type
+        
+        size_in_mb = size_in_bits/8/1024/1024
+        
+        if size_in_mb > 50:
+            self.iface.messageBar().pushMessage("Layer size warning", 
+                                 "Download is estimated to be " + str(int(size_in_mb)) + " MB", 
+                                 level=Qgis.Warning, duration = 5)
+        
             
     def getData(self):
         """
@@ -390,6 +411,8 @@ class GeocubesPlugin:
         # nothing will be downloaded if nothing is selected. Notifies user. Else continue
         if(len(self.datasets_to_download) == 0):
             self.updateDataText("Please select one or more layers!")
+        elif not self.resolution:
+            self.updateDataText("Please select resolution!")
         else:
             # get info that's passed to the Geocubes server
             dataset_parameters = self.getValues()
@@ -441,6 +464,7 @@ class GeocubesPlugin:
             
     
     def updateExtent(self):
+        """Updates extent boxes when the canvas extent changes"""
         self.extent_box.setCurrentExtent(self.canvas.extent(), self.proj_crs)
         self.extent_box.setOutputExtentFromCurrent()
             
@@ -491,6 +515,7 @@ class GeocubesPlugin:
             # QGIS canvas
             self.canvas = self.iface.mapCanvas()
             self.canvas.extentsChanged.connect(self.updateExtent)
+
             
             # initialising the extent box
             # all the data is in ETRS89 / TM35FIN (EPSG:3067), 
@@ -504,6 +529,8 @@ class GeocubesPlugin:
             # box housing a drop-down list of possible raster resolutions
             self.resolution_box = self.dlg.resolutionBox
             self.resolution_box.activated.connect(self.setResolution)
+            self.resolution_box.activated.connect(self.estimateFileSize)
+
             
             self.data_button = self.dlg.getDataButton
             self.data_button.clicked.connect(self.getData)
@@ -527,7 +554,7 @@ class GeocubesPlugin:
         self.resolution_box.clear()
         self.resolution_box.addItems(str(resolution) for resolution in resolutions)
         # set '100' as the default selection
-        self.resolution_box.setCurrentIndex(6)
+        self.resolution_box.setCurrentIndex(-1)
         
         # this variable houses the currently selected resolution
         self.resolution = self.resolution_box.currentText()
@@ -538,8 +565,13 @@ class GeocubesPlugin:
         # an empty list for only the datasets the user has selected
         self.datasets_to_download = []
         
-        self.canvas.setDestinationCrs(self.proj_crs)
-        
+        if self.canvas.mapSettings().destinationCrs() != self.proj_crs:
+            self.canvas.setDestinationCrs(self.proj_crs)
+                                    
+            self.iface.messageBar().pushMessage("CRS changed", 
+                                        "CRS must be EPSG:3067. Destination CRS changed to it.", 
+                                        level=Qgis.Warning, duration = 9)
+        # canvas extent at the start
         og_extent = self.canvas.extent()
         
         # these three things must be set when initialising the extent box
@@ -547,6 +579,7 @@ class GeocubesPlugin:
         self.extent_box.setCurrentExtent(og_extent, self.proj_crs)
         self.extent_box.setOutputCrs(self.proj_crs)
         
+        # push current extent to the box
         self.updateExtent()
 
         
