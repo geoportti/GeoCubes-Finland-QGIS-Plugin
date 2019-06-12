@@ -32,7 +32,7 @@ from qgis.gui import QgsBusyIndicatorDialog
 from .resources import *
 # Import the code for the dialog
 from .geocubes_plugin_dialog import GeocubesPluginDialog
-import os.path, requests
+import os.path, requests, numpy
 
 
 class GeocubesPlugin:
@@ -187,6 +187,32 @@ class GeocubesPlugin:
     def setResolution(self):
         """Resolution is set to be the one currently in the box"""
         self.resolution = self.resolution_box.currentText()
+        
+    def extentResolution(self):
+        """Automatically suggests a resolution for the current map scale.
+        Activated when user moves the canvas and updates the resolution box.
+        Suggested resolution is reached via this formula:
+        https://www.esri.com/arcgis-blog/products/product/imagery/on-map-scale-and-raster-resolution/?rmedium
+        """
+        # map scale as a double, i.e. 1:563000 -> 563000.000
+        map_scale = self.canvas.scale()
+        
+        detectable_size = map_scale / 1000
+
+        real_resolution = detectable_size / 2
+        
+        # fetch all resolutions from the box as integers
+        all_resolutions = [int(self.resolution_box.itemText(i)) for i in range(self.resolution_box.count())]
+        
+        # find the resolution closest to the ones available. See:
+        # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+        closest_resolution = min(all_resolutions, key=lambda x:abs(x-real_resolution))
+        
+        resolution_idx = self.resolution_box.findText(str(closest_resolution))
+        
+        self.resolution_box.setCurrentIndex(resolution_idx)
+        
+        self.setResolution()
         
             
     def getDatasets(self):
@@ -364,10 +390,39 @@ class GeocubesPlugin:
            Also updates layer count text"""
         self.datasets_to_download.clear()
         self.updateCountText()
+    
+    def estimateFileSize(self):
+        """Is activated when user selects a resolution. Estimates the file size
+        of a single layer download in MB based on known factors. These are:
+        -extent, how many x & y lines there are and therefore, how many pixels
+        -radiometric resolution (aka bit depth or data type in QGIS): 8, 16, 32 bits
+            As of now, the radiometric resolution is hardcoded to be 16.
+        Warns users of too large files (set to 50 MB atm)"""
+        ext = self.getExtent()
+        xmin = ext.xMinimum()
+        xmax = ext.xMaximum()
+        ymin = ext.yMinimum()
+        ymax = ext.yMaximum()
+        
+        # (x-axis / resolution) * (y-axis / resolution)
+        pixelcount = (xmax-xmin)/int(self.resolution) * ((ymax-ymin)/ int(self.resolution))
+        
+        data_type = 16
+        
+        # times radiometric resolution
+        size_in_bits = pixelcount * data_type
+        
+        # size in bits -> to bytes -> to kB -> to MB
+        size_in_mb = size_in_bits/8/1024/1024
+        
+        if size_in_mb > 50:
+            self.iface.messageBar().pushMessage("Layer size warning", 
+                                 "Download is estimated to be " + str(int(size_in_mb)) + " MB", 
+                                 level=Qgis.Warning, duration = 5)
+        
         
     def getValues(self):
-        """Extracts all values (name/year pairs separated by a semicolon)
-            Returns them as a list"""
+        """Extracts all values (name/year tuples). Returns them as a list"""
         values = []
         
         for dataset_key in self.datasets_to_download:
@@ -376,27 +431,6 @@ class GeocubesPlugin:
             values.append(value)
             
         return values
-    
-    def estimateFileSize(self):
-        ext = self.getExtent()
-        xmin = ext.xMinimum()
-        xmax = ext.xMaximum()
-        ymin = ext.yMinimum()
-        ymax = ext.yMaximum()
-        
-        pixelcount = (xmax-xmin)/int(self.resolution) * ((ymax-ymin)/ int(self.resolution))
-        
-        data_type = 16
-        
-        size_in_bits = pixelcount * data_type
-        
-        size_in_mb = size_in_bits/8/1024/1024
-        
-        if size_in_mb > 50:
-            self.iface.messageBar().pushMessage("Layer size warning", 
-                                 "Download is estimated to be " + str(int(size_in_mb)) + " MB", 
-                                 level=Qgis.Warning, duration = 5)
-        
             
     def getData(self):
         """
@@ -467,6 +501,7 @@ class GeocubesPlugin:
         """Updates extent boxes when the canvas extent changes"""
         self.extent_box.setCurrentExtent(self.canvas.extent(), self.proj_crs)
         self.extent_box.setOutputExtentFromCurrent()
+        
             
     def getExtent(self):
         """Current extent shown in the extent groupbox
@@ -522,6 +557,7 @@ class GeocubesPlugin:
             # therefore that's the default crs
             self.extent_box = self.dlg.mExtentGroupBox
             self.proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
+            self.extent_box.extentChanged.connect(self.extentResolution)
             # current extent, or bounding box
 
 
@@ -529,6 +565,8 @@ class GeocubesPlugin:
             # box housing a drop-down list of possible raster resolutions
             self.resolution_box = self.dlg.resolutionBox
             self.resolution_box.activated.connect(self.setResolution)
+            
+            # estimate download file size when resolution changes
             self.resolution_box.activated.connect(self.estimateFileSize)
 
             
@@ -581,7 +619,8 @@ class GeocubesPlugin:
         
         # push current extent to the box
         self.updateExtent()
-
+        
+        self.extentResolution()
         
         # set default texts
         self.layer_count_text.setText('0 layers selected')
