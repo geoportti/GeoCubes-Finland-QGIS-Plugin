@@ -29,13 +29,18 @@
        </property>
        <property name="font">
         <font>
-         <pointsize>10</pointsize>
+         <pointsize>7</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
         </font>
        </property>
        <property name="text">
         <string>Start here</string>
        </property>
       </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="urlBaseField"/>
      </item>
      <item>
       <widget class="QPushButton" name="getContents">

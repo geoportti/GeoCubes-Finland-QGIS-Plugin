@@ -32,7 +32,7 @@ from qgis.gui import QgsBusyIndicatorDialog
 from .resources import *
 # Import the code for the dialog
 from .geocubes_plugin_dialog import GeocubesPluginDialog
-import os.path, requests, numpy
+import os.path, requests
 
 
 class GeocubesPlugin:
@@ -339,6 +339,9 @@ class GeocubesPlugin:
             
     def updateDataText(self, msg):
         self.data_info_text.setText(msg)
+        
+    def updateBaseUrl(self):
+        self.url_base = self.url_base_field.text()
             
     def checkboxState(self, cbox):
         """itemChanged signal passes the checkbox (cbox). This function
@@ -534,8 +537,11 @@ class GeocubesPlugin:
             # the ui
             self.dlg = GeocubesPluginDialog()
             
-            # current base url of the Geocubes project. Modify if url changes
+            # current base url (shared by all queries) of the Geocubes project. Modify if url changes
             self.url_base = "http://86.50.168.160/geocubes"
+            self.url_base_field = self.dlg.urlBaseField
+            self.url_base_field.textEdited.connect(self.updateBaseUrl)
+            
             
             # table to house the datasets: also add policies to fit the data
             # better on the table
@@ -630,6 +636,8 @@ class GeocubesPlugin:
         
         # make sure the table is empty on restart
         self.table.clear()
+        
+        self.url_base_field.setText(self.url_base)
         
         # show the dialog
         self.dlg.show()
