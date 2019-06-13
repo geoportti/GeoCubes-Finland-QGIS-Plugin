@@ -188,12 +188,17 @@ class GeocubesPlugin:
         """Resolution is set to be the one currently in the box"""
         self.resolution = self.resolution_box.currentText()
         
+    def sendWarning(self, title, text, duration):
+        self.iface.messageBar().pushMessage(title, text, Qgis.Warning, 
+                             duration = duration)
+        
     def extentResolution(self):
         """Automatically suggests a resolution for the current map scale.
         Activated when user moves the canvas and updates the resolution box.
         Suggested resolution is reached via this formula:
         https://www.esri.com/arcgis-blog/products/product/imagery/on-map-scale-and-raster-resolution/?rmedium
         """
+        
         # map scale as a double, i.e. 1:563000 -> 563000.000
         map_scale = self.canvas.scale()
         
@@ -222,9 +227,29 @@ class GeocubesPlugin:
         # request info from the server: if no response in 10 seconds, timeout
         response = requests.get(self.url_base + "/info/getDatasets", timeout=10)
         
-        # request status code indicates whether succesful: if not, raise an exception
-        if (response.status_code >= 500):
-            raise Exception('Server timed out')
+        # request status code indicates whether succesful: if not, return false
+        # and warn user
+        s_code = response.status_code
+        
+        if (s_code == 204):
+            self.sendWarning("Empty response", "Failed to fetch datasets. Error: "+
+                             str(s_code), 10)
+            return False
+        
+        if (s_code >= 500):
+            self.sendWarning("Server error", "Failed to fetch datasets. Error: "+
+                             str(s_code), 10)
+            """
+            self.iface.messageBar().pushMessage("Server error", 
+                                 "Failed to fetch datasets. Error: " + s_code, 
+                                 level=Qgis.Warning, duration = 10)
+            """
+            return False
+        
+        if (s_code >= 400):
+            self.sendWarning("Client error", "Failed to fetch datasets. Code: "+
+                             str(s_code), 10)
+            return False
 
         # decode from bytes to string
         response_string = response.content.decode("utf-8")
@@ -249,6 +274,10 @@ class GeocubesPlugin:
 
         # get a list of datasets
         datasets = self.getDatasets()
+        
+        # if capabilities query failed, don't run code below
+        if not datasets:
+            return
 
         self.table.setColumnCount(4)
         # start with only 1 row, add more as needed
@@ -342,6 +371,8 @@ class GeocubesPlugin:
         
     def updateBaseUrl(self):
         self.url_base = self.url_base_field.text()
+        
+
             
     def checkboxState(self, cbox):
         """itemChanged signal passes the checkbox (cbox). This function
@@ -419,9 +450,13 @@ class GeocubesPlugin:
         size_in_mb = size_in_bits/8/1024/1024
         
         if size_in_mb > 50:
+            self.sendWarning("Layer size warning", "Download is estimated to be: "+
+                             str(int(size_in_mb)) + " MB", 6)
+            """
             self.iface.messageBar().pushMessage("Layer size warning", 
                                  "Download is estimated to be " + str(int(size_in_mb)) + " MB", 
                                  level=Qgis.Warning, duration = 5)
+            """
         
         
     def getValues(self):
@@ -486,8 +521,8 @@ class GeocubesPlugin:
                     # if data query fails, inform user. If not, add to Qgis
                     if not raster_layer.isValid():
                         self.iface.messageBar().pushMessage("Layer invalid", 
-                                        ''.join([name,'_',year])+" failed to download", level=Qgis.Warning,
-                                        duration = 9)
+                                        ''.join([name,'_',year])+" failed to download",
+                                        level=Qgis.Warning, duration = 9)
                     else:
                         QgsProject.instance().addMapLayer(raster_layer)
                         successful_layers += 1
@@ -564,8 +599,6 @@ class GeocubesPlugin:
             self.extent_box = self.dlg.mExtentGroupBox
             self.proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
             self.extent_box.extentChanged.connect(self.extentResolution)
-            # current extent, or bounding box
-
 
             
             # box housing a drop-down list of possible raster resolutions
@@ -644,10 +677,11 @@ class GeocubesPlugin:
         
         # Run the dialog event loop
         """
-        result = self.dlg.exec_()
-        # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass
+        MITEN SAADA RASTERITASO TALLENNETTUA:
+        >provider = rlayer.dataProvider()
+        >(provider.dataType(1))
+         >https://qgis.org/api/classQgis.html
+        >https://qgis.org/api/classQgsRasterFileWriter.html#a660aecebe6791d543b8c568edf0084f0
+        >writeRaster:
+            >https://qgis.org/api/classQgsRasterFileWriter.html#a660aecebe6791d543b8c568edf0084f0
         """
