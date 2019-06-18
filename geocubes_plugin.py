@@ -25,8 +25,8 @@ from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QAction, QTableWidgetItem, QAbstractScrollArea
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
-                       QgsMessageLog, Qgis)
-from qgis.gui import QgsBusyIndicatorDialog
+                       QgsMessageLog, Qgis, QgsVectorLayer)
+from qgis.gui import QgsBusyIndicatorDialog, QgsMessageBar
 
 # Initialize Qt resources from file resources.py
 from .resources import *
@@ -189,7 +189,7 @@ class GeocubesPlugin:
         self.resolution = self.resolution_box.currentText()
         
     def sendWarning(self, title, text, duration):
-        self.iface.messageBar().pushMessage(title, text, Qgis.Warning, 
+        self.msg_bar.pushMessage(title, text, Qgis.Warning, 
                              duration = duration)
         
     def extentResolution(self):
@@ -201,6 +201,7 @@ class GeocubesPlugin:
         
         # map scale as a double, i.e. 1:563000 -> 563000.000
         map_scale = self.canvas.scale()
+        
         
         detectable_size = map_scale / 1000
 
@@ -239,11 +240,6 @@ class GeocubesPlugin:
         if (s_code >= 500):
             self.sendWarning("Server error", "Failed to fetch datasets. Error: "+
                              str(s_code), 10)
-            """
-            self.iface.messageBar().pushMessage("Server error", 
-                                 "Failed to fetch datasets. Error: " + s_code, 
-                                 level=Qgis.Warning, duration = 10)
-            """
             return False
         
         if (s_code >= 400):
@@ -283,7 +279,7 @@ class GeocubesPlugin:
         # start with only 1 row, add more as needed
         self.table.setRowCount(1)
         # set headers for all 4 columns
-        self.table.setHorizontalHeaderLabels(['Label', 'Year', 'Maxres (m)', 'Select'])
+        self.table.setHorizontalHeaderLabels(['Label', 'Year', 'Max resolution (m)', 'Select layer'])
 
         # loop through all the datasets
         for i, dataset in enumerate(datasets):
@@ -335,7 +331,6 @@ class GeocubesPlugin:
                 value = (name, year)
                 
                 self.datasets_all[key] = value
-
                 
                 # add the previously created items on the table
                 self.table.setItem(row_count-1, 0, label_entry)
@@ -452,11 +447,6 @@ class GeocubesPlugin:
         if size_in_mb > 50:
             self.sendWarning("Layer size warning", "Download is estimated to be: "+
                              str(int(size_in_mb)) + " MB", 6)
-            """
-            self.iface.messageBar().pushMessage("Layer size warning", 
-                                 "Download is estimated to be " + str(int(size_in_mb)) + " MB", 
-                                 level=Qgis.Warning, duration = 5)
-            """
         
         
     def getValues(self):
@@ -494,11 +484,12 @@ class GeocubesPlugin:
             done = False
             
             # while datasets are downloaded, an indicator will be shown
-            busy_dialog = QgsBusyIndicatorDialog("Fetching data...", self.dlg)
-            busy_dialog.show()
+
+            self.busy_dialog.show()
             
             # a simple count of succesful downloads
             successful_layers = 0
+            print("")
         
             while not done:
                 # 1 to n loops to download all selected data
@@ -515,14 +506,13 @@ class GeocubesPlugin:
                         + "/" + year)
                     
                     # creating raster layer by passing the url and giving
-                    # paramter (name;year) as layer name
-                    raster_layer = QgsRasterLayer(data_url, ''.join([name,year]))
+                    # name and year as layer names
+                    raster_layer = QgsRasterLayer(data_url, ''.join([name, '_', year]))
                     
                     # if data query fails, inform user. If not, add to Qgis
                     if not raster_layer.isValid():
-                        self.iface.messageBar().pushMessage("Layer invalid", 
-                                        ''.join([name,'_',year])+" failed to download",
-                                        level=Qgis.Warning, duration = 9)
+                        self.sendWarning("Layer invalid", ''.join([name,'_',year])+
+                                         " failed to download", 9)
                     else:
                         QgsProject.instance().addMapLayer(raster_layer)
                         successful_layers += 1
@@ -531,9 +521,33 @@ class GeocubesPlugin:
                 self.updateDataText(str(successful_layers) + "/" +
                                     str(len(dataset_parameters))+ " layer(s)" +
                                     " successfully downloaded")
-                busy_dialog.close()
+                self.busy_dialog.close()
                 done = True
             
+    def getAreas(self):
+        area_name = "ogiir:maakuntajako_2018_250k"
+        self.busy_dialog.show()
+        url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
+        "&request=GetFeature&typename="+area_name+"&pagingEnabled=true")
+        
+        vector_layer = QgsVectorLayer(url, "WFS-layer", "WFS")
+        
+        if not vector_layer.isValid():
+            self.updateDataText("WFS query failed")
+        else:
+            self.updateAreaBox(vector_layer)
+            
+    def updateAreaBox(self, vlayer):
+        self.areas_box.clear()
+        name_list = []
+        
+        for feature in vlayer.getFeatures():
+            name_fi = feature[2]
+            name_list.append(name_fi)
+        
+        name_list.sort()
+        self.areas_box.addItems(name for name in name_list)
+        self.busy_dialog.close()
     
     def updateExtent(self):
         """Updates extent boxes when the canvas extent changes"""
@@ -558,7 +572,7 @@ class GeocubesPlugin:
             This function's input is a Qgis rectangle and output a bbox string"""
         formatted_extent = (str(rectangle.xMinimum())+','+str(rectangle.yMinimum())
                             +','+str(rectangle.xMaximum())+','+str(rectangle.yMaximum()))
-        return formatted_extent           
+        return formatted_extent
 
     def run(self):
         """Run method that performs all the real work"""
@@ -623,6 +637,17 @@ class GeocubesPlugin:
             # temporary layers or save the rasters to disc
             self.save_temp_button = self.dlg.saveToTempButton
             
+            
+            self.areas_button = self.dlg.getAreasButton
+            self.areas_button.clicked.connect(self.getAreas)
+            self.areas_box = self.dlg.areasBox
+            #self.areas_box.checkedItemsChanged.connect(self.printAreas)
+            
+            self.busy_dialog = QgsBusyIndicatorDialog("Fetching data...", self.dlg)
+            
+            self.msg_bar = QgsMessageBar(self.dlg.tabWidget)
+
+            
 
         
         # list of possible resolutions. Update if this changes
@@ -630,7 +655,7 @@ class GeocubesPlugin:
         # empty the box when plugin is restarted
         self.resolution_box.clear()
         self.resolution_box.addItems(str(resolution) for resolution in resolutions)
-        # set '100' as the default selection
+        # set the box empty by default
         self.resolution_box.setCurrentIndex(-1)
         
         # this variable houses the currently selected resolution
@@ -645,9 +670,8 @@ class GeocubesPlugin:
         if self.canvas.mapSettings().destinationCrs() != self.proj_crs:
             self.canvas.setDestinationCrs(self.proj_crs)
                                     
-            self.iface.messageBar().pushMessage("CRS changed", 
-                                        "CRS must be EPSG:3067. Destination CRS changed to it.", 
-                                        level=Qgis.Warning, duration = 9)
+            self.sendWarning("CRS changed", "CRS must be EPSG:3067."+ 
+                             " Destination CRS changed to it.", 9)
         # canvas extent at the start
         og_extent = self.canvas.extent()
         
