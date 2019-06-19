@@ -23,7 +23,8 @@
 """
 from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QAction, QTableWidgetItem, QAbstractScrollArea
+from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
+                             QSizePolicy)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
                        QgsMessageLog, Qgis, QgsVectorLayer)
 from qgis.gui import QgsBusyIndicatorDialog, QgsMessageBar
@@ -188,7 +189,11 @@ class GeocubesPlugin:
         """Resolution is set to be the one currently in the box"""
         self.resolution = self.resolution_box.currentText()
         
+    def setAdminArea(self):
+        self.admin_area = self.admin_areas_box.currentText()
+        
     def sendWarning(self, title, text, duration):
+        """Creates a warning on the top of the widget"""
         self.msg_bar.pushMessage(title, text, Qgis.Warning, 
                              duration = duration)
         
@@ -201,7 +206,6 @@ class GeocubesPlugin:
         
         # map scale as a double, i.e. 1:563000 -> 563000.000
         map_scale = self.canvas.scale()
-        
         
         detectable_size = map_scale / 1000
 
@@ -219,6 +223,8 @@ class GeocubesPlugin:
         self.resolution_box.setCurrentIndex(resolution_idx)
         
         self.setResolution()
+        
+        self.updateCountText()
         
             
     def getDatasets(self):
@@ -354,12 +360,13 @@ class GeocubesPlugin:
         
     def updateCountText(self):
         """Activated when checkbox states change. Updates the count accordingly"""
+        res_text = "Resolution set to " + self.resolution + " m"
         if len(self.datasets_to_download) == 1:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
-                                          ' layer selected')
+                                          ' layer selected | ' + res_text)
         else:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
-                                          ' layers selected')
+                                          ' layers selected | ' + res_text)
             
     def updateDataText(self, msg):
         self.data_info_text.setText(msg)
@@ -367,7 +374,6 @@ class GeocubesPlugin:
     def updateBaseUrl(self):
         self.url_base = self.url_base_field.text()
         
-
             
     def checkboxState(self, cbox):
         """itemChanged signal passes the checkbox (cbox). This function
@@ -427,6 +433,9 @@ class GeocubesPlugin:
         -radiometric resolution (aka bit depth or data type in QGIS): 8, 16, 32 bits
             As of now, the radiometric resolution is hardcoded to be 16.
         Warns users of too large files (set to 50 MB atm)"""
+        if self.admin_radio_button.isChecked():
+            return
+        
         ext = self.getExtent()
         xmin = ext.xMinimum()
         xmax = ext.xMaximum()
@@ -475,21 +484,20 @@ class GeocubesPlugin:
             self.updateDataText("Please select one or more layers!")
         elif not self.resolution:
             self.updateDataText("Please select resolution!")
+        elif self.admin_radio_button.isChecked() and not self.admin_area:
+            self.updateDataText("Please select admin areas!")
         else:
             # get info that's passed to the Geocubes server
             dataset_parameters = self.getValues()
-            extent = self.getExtent()
             
-            # this is needed to form a while loop
+            # this is needed to form a while loop, which is needed for the busy dialog
             done = False
             
             # while datasets are downloaded, an indicator will be shown
-
             self.busy_dialog.show()
             
             # a simple count of succesful downloads
             successful_layers = 0
-            print("")
         
             while not done:
                 # 1 to n loops to download all selected data
@@ -501,9 +509,10 @@ class GeocubesPlugin:
                     # forming the url that's passed to server
                     # see http://86.50.168.160/geocubes/examples/ 
                     # for examples of forming this url
-                    data_url = (self.url_base + "/clip/" + self.resolution +
-                        "/"+ name +"/bbox:" + self.formatExtent(extent)
-                        + "/" + year)
+                    if self.bbox_radio_button.isChecked():
+                        data_url = self.getbBoxUrl(name, year)
+                    else:
+                        data_url = self.getAdminUrl(name, year)
                     
                     # creating raster layer by passing the url and giving
                     # name and year as layer names
@@ -523,31 +532,73 @@ class GeocubesPlugin:
                                     " successfully downloaded")
                 self.busy_dialog.close()
                 done = True
+                
+    def getbBoxUrl(self, name, year):
+        extent = self.getExtent()
+        bbox_url = (self.url_base + "/clip/" + self.resolution +
+                        "/"+ name +"/bbox:" + self.formatExtent(extent)
+                        + "/" + year)
+        return bbox_url
+    
+    def getAdminUrl(self, name, year):
+        areas = self.areaBoxSelection()
+        admin_url = (self.url_base + "/clip/" + self.resolution +"/"+ name +
+                     "/"+self.admin_area.lower()+":" + self.formatAreas(areas)
+                        + "/" + year)
+        return admin_url
             
     def getAreas(self):
-        area_name = "ogiir:maakuntajako_2018_250k"
+        """Fetches a vector data of administrative divisions from Geocubes WFS 
+           server. Passes this on to another function."""
+
+        # don't do anything, if the box is empty
+        if not self.admin_area:
+            return
+        
+        # create a string to fetch the correct data
+        area_name = "ogiir:" + self.admin_area.lower() + "_2018_4500k"
         self.busy_dialog.show()
         url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
         "&request=GetFeature&typename="+area_name+"&pagingEnabled=true")
         
+        # pass url and other relevant data to create a layer
         vector_layer = QgsVectorLayer(url, "WFS-layer", "WFS")
         
         if not vector_layer.isValid():
             self.updateDataText("WFS query failed")
+            self.busy_dialog.close()
         else:
+            # if everything went well, run another function on the layer
             self.updateAreaBox(vector_layer)
             
     def updateAreaBox(self, vlayer):
+        """Populates the selectable box with whatever administrative areas
+            the user has picked."""
         self.areas_box.clear()
         name_list = []
         
+        # loop through features or rows in the layer
         for feature in vlayer.getFeatures():
             name_fi = feature[2]
-            name_list.append(name_fi)
+            id_code = feature[1]
+            # create a string from Finnish name and id code
+            key = name_fi + ", " + str(id_code)
+            
+            name_list.append(key)
         
         name_list.sort()
+        # add all area strings to the box
         self.areas_box.addItems(name for name in name_list)
         self.busy_dialog.close()
+        
+    def areaBoxSelection(self):
+        return self.areas_box.checkedItems()
+        
+    def collapseExtentBox(self):
+        self.extent_box.setCollapsed(True)
+        
+    def uncollapseExtentBox(self):
+        self.extent_box.setCollapsed(False)
     
     def updateExtent(self):
         """Updates extent boxes when the canvas extent changes"""
@@ -573,7 +624,27 @@ class GeocubesPlugin:
         formatted_extent = (str(rectangle.xMinimum())+','+str(rectangle.yMinimum())
                             +','+str(rectangle.xMaximum())+','+str(rectangle.yMaximum()))
         return formatted_extent
-
+    
+    def formatAreas(self, areas):
+        """Return areas selected by user in a format suitable for the url. Id codes
+            are used to identify features. Nationwide (valtakunta) is a special case, since
+            it's handled differently to the other datasets serverside"""
+            
+        if self.admin_area == 'Valtakunta':
+            return str(1)
+        else:
+            # empty string forms a basis for the formatting
+            codes = ""
+            # loop through 1 to n areas. For each, add id code to string
+            for area in areas:
+                area_split = area.split(", ")
+                code = area_split[len(area_split)-1]
+                if not codes:
+                    codes = code
+                else:
+                    codes = codes + "," + code
+            return codes
+        
     def run(self):
         """Run method that performs all the real work"""
 
@@ -621,6 +692,8 @@ class GeocubesPlugin:
             
             # estimate download file size when resolution changes
             self.resolution_box.activated.connect(self.estimateFileSize)
+            
+            self.resolution_box.activated.connect(self.updateCountText)
 
             
             self.data_button = self.dlg.getDataButton
@@ -637,15 +710,29 @@ class GeocubesPlugin:
             # temporary layers or save the rasters to disc
             self.save_temp_button = self.dlg.saveToTempButton
             
+            # radio buttons to decide what to use when cropping the data
+            self.bbox_radio_button = self.dlg.bboxRadioButton
+            self.admin_radio_button = self.dlg.adminRadioButton
             
-            self.areas_button = self.dlg.getAreasButton
-            self.areas_button.clicked.connect(self.getAreas)
+            # show or hide the extent box based on which one is selected
+            self.bbox_radio_button.clicked.connect(self.uncollapseExtentBox)
+            self.admin_radio_button.clicked.connect(self.collapseExtentBox)
+            
+            
+            self.admin_areas_box = self.dlg.adminAreasBox
             self.areas_box = self.dlg.areasBox
-            #self.areas_box.checkedItemsChanged.connect(self.printAreas)
+            admin_area_labels = ['Valtakunta', 'Aluehallintovirastojako', 'Maakuntajako',
+                       'Kuntajako']
+            self.admin_areas_box.addItems(label for label in admin_area_labels)
+            self.admin_areas_box.currentTextChanged.connect(self.setAdminArea)
+            self.admin_areas_box.currentTextChanged.connect(self.getAreas)
             
             self.busy_dialog = QgsBusyIndicatorDialog("Fetching data...", self.dlg)
             
+            # initiate message bar that warns user when something goes wrong
             self.msg_bar = QgsMessageBar(self.dlg.tabWidget)
+            self.msg_bar.setMinimumSize(550, 80)
+            self.msg_bar.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
             
 
@@ -660,6 +747,9 @@ class GeocubesPlugin:
         
         # this variable houses the currently selected resolution
         self.resolution = self.resolution_box.currentText()
+        
+        self.admin_areas_box.setCurrentIndex(-1)
+        self.admin_area = self.admin_areas_box.currentText()
         
         # an empty dictionary to house all the fetched datasets
         self.datasets_all = {}
@@ -686,19 +776,25 @@ class GeocubesPlugin:
         self.extentResolution()
         
         # set default texts
-        self.layer_count_text.setText('0 layers selected')
+        self.updateCountText()
         self.data_info_text.setText('Get datasets here')
         
+        self.bbox_radio_button.setChecked(True)
+        
         self.save_temp_button.setChecked(True)
+        
+
+
         
         # make sure the table is empty on restart
         self.table.clear()
         
-        self.url_base_field.setText(self.url_base)
+        self.areas_box.clear()
         
+        self.url_base_field.setText(self.url_base)
         # show the dialog
         self.dlg.show()
-        
+        self.uncollapseExtentBox()
         # Run the dialog event loop
         """
         MITEN SAADA RASTERITASO TALLENNETTUA:

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>634</width>
+    <width>616</width>
     <height>757</height>
    </rect>
   </property>
@@ -47,7 +47,7 @@
               </font>
              </property>
              <property name="text">
-              <string>Start here</string>
+              <string>Please select layers to download</string>
              </property>
             </widget>
            </item>
@@ -98,6 +98,16 @@
          <item>
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
+            <widget class="QRadioButton" name="bboxRadioButton">
+             <property name="text">
+              <string>Crop data with a bounding box</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QgsExtentGroupBox" name="mExtentGroupBox">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
@@ -108,21 +118,33 @@
              <property name="maximumSize">
               <size>
                <width>500</width>
-               <height>250</height>
+               <height>16777215</height>
               </size>
+             </property>
+             <property name="collapsed">
+              <bool>false</bool>
+             </property>
+             <property name="saveCollapsedState">
+              <bool>false</bool>
              </property>
             </widget>
            </item>
            <item>
             <layout class="QFormLayout" name="formLayout">
-             <item row="2" column="0">
-              <widget class="QPushButton" name="getAreasButton">
-               <property name="text">
-                <string>Get areas</string>
+             <item row="1" column="1">
+              <spacer name="verticalSpacer">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
                </property>
-              </widget>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
              </item>
-             <item row="2" column="1">
+             <item row="4" column="1">
               <widget class="QgsCheckableComboBox" name="areasBox">
                <property name="maximumSize">
                 <size>
@@ -132,14 +154,40 @@
                </property>
               </widget>
              </item>
-             <item row="5" column="0">
+             <item row="5" column="1">
+              <spacer name="verticalSpacer_2">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="6" column="1">
+              <spacer name="verticalSpacer_3">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="8" column="0">
               <widget class="QLabel" name="label_2">
                <property name="text">
                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Resolution (m): &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                </property>
               </widget>
              </item>
-             <item row="5" column="1">
+             <item row="8" column="1">
               <widget class="QComboBox" name="resolutionBox">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -158,44 +206,42 @@
                </property>
               </widget>
              </item>
+             <item row="4" column="0">
+              <widget class="QComboBox" name="adminAreasBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>130</width>
+                 <height>0</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_3">
+               <property name="text">
+                <string>Administrative division:</string>
+               </property>
+              </widget>
+             </item>
              <item row="3" column="1">
-              <spacer name="verticalSpacer_2">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Select areas to crop by:</string>
                </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
+              </widget>
              </item>
-             <item row="1" column="1">
-              <spacer name="verticalSpacer">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
+             <item row="2" column="0">
+              <widget class="QRadioButton" name="adminRadioButton">
+               <property name="text">
+                <string>Crop data with admin areas</string>
                </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="4" column="1">
-              <spacer name="verticalSpacer_3">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
+              </widget>
              </item>
             </layout>
            </item>
