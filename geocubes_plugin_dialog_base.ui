@@ -22,7 +22,7 @@
      <item>
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -47,7 +47,7 @@
               </font>
              </property>
              <property name="text">
-              <string>Please select layers to download</string>
+              <string>Select layers to download</string>
              </property>
             </widget>
            </item>

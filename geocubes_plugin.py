@@ -21,7 +21,8 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt5.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, Qt
+from PyQt5.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, 
+                          Qt, pyqtSignal)
 from PyQt5.QtGui import QIcon, QFont
 from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
                              QSizePolicy, QMainWindow, QDialog)
@@ -30,13 +31,13 @@ from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
                        QgsVectorLayerSimpleLabeling, QgsTextFormat, 
                        QgsTextBufferSettings)
 from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar, QgsMapCanvas, 
-                      QgsMapToolPan, QgsMapToolZoom)
+                      QgsMapToolPan, QgsMapToolZoom, QgsMapToolIdentifyFeature)
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .geocubes_plugin_dialog import GeocubesPluginDialog
-import os.path, requests, time
+import os.path, requests
 
 
 class GeocubesPlugin:
@@ -554,7 +555,7 @@ class GeocubesPlugin:
         """Fetches a vector data of administrative divisions from Geocubes WFS 
            server. Passes this on to another function."""
 
-        # don't do anything, if the box is empty
+        # don't do anything if the box is empty
         if not self.admin_area:
             return
         
@@ -575,23 +576,18 @@ class GeocubesPlugin:
             self.updateAreaBox(vector_layer)
             self.vlayer = vector_layer
 
-            """
-            m_window = MapWindow(vector_layer)
-            print(m_window)
-            print(type(m_window))
-            m_window.show()
-            """
     def openMapWindow(self):
         if not self.vlayer:
             self.sendWarning("Layer missing", "Select admin area first", 6)
         else:
-            #QgsProject.instance().addMapLayer(self.vlayer)
-            """
-            self.map_canvas.setExtent(self.vlayer.extent())
-            self.map_canvas.setLayers([self.vlayer])'
-            self.map_canvas.show()
-            """
-            self.map_canvas.addLayer(self.vlayer)
+            scrap_vlayer = QgsVectorLayer(self.vlayer.source(), "Scrap", 
+                                          self.vlayer.providerType())
+            self.map_canvas.addLayer(scrap_vlayer)
+
+            
+    def mapSelectionToBox(self):
+        map_selection = self.map_canvas.getSelection()
+        self.areas_box.setCheckedItems(map_selection)
             
     def updateAreaBox(self, vlayer):
         """Populates the selectable box with whatever administrative areas
@@ -602,11 +598,11 @@ class GeocubesPlugin:
         # loop through features or rows in the layer
         for feature in vlayer.getFeatures():
             name_fi = feature[2]
-            id_code = feature[1]
+            #id_code = feature[1]
             # create a string from Finnish name and id code
-            key = name_fi + ", " + str(id_code)
+            #key = name_fi + ", " + str(id_code)
             
-            name_list.append(key)
+            name_list.append(name_fi)
         
         name_list.sort()
         # add all area strings to the box
@@ -761,6 +757,9 @@ class GeocubesPlugin:
             self.msg_bar.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
             
             self.vlayer = False
+            
+            self.map_canvas = MapWindow()
+            self.map_canvas.finished.connect(self.mapSelectionToBox)
         
         # list of possible resolutions. Update if this changes
         resolutions = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
@@ -818,8 +817,6 @@ class GeocubesPlugin:
         # show the dialog
         self.dlg.show()
         self.uncollapseExtentBox()
-        
-        self.map_canvas = MapWindow()
         """
         self.map_canvas.setMinimumSize(550, 150)
         self.map_canvas.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -836,22 +833,27 @@ class GeocubesPlugin:
             >https://qgis.org/api/classQgsRasterFileWriter.html#a660aecebe6791d543b8c568edf0084f0
 """
 class MapWindow(QMainWindow):
+    finished = pyqtSignal()
     def __init__(self):
         QMainWindow.__init__(self)
+
 
         self.canvas = QgsMapCanvas()
         self.canvas.setMinimumSize(350, 350)
         self.canvas.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        self.canvas.setCanvasColor(Qt.gray)
+        self.canvas.setCanvasColor(Qt.white)
+        self.canvas.enableAntiAliasing(True)
 
         #self.canvas.setExtent(layer.extent())
         #self.canvas.setLayers([layer])
         
+        self.selectedFeatures = []
+        
         self.label_settings = QgsPalLayerSettings()
         text_format = QgsTextFormat()
         
-        text_format.setFont(QFont("Times", 12))
-        text_format.setSize(8)
+        text_format.setFont(QFont("Helvetica", 12))
+        text_format.setSize(6.5)
         
         buffer_settings = QgsTextBufferSettings()
         buffer_settings.setEnabled(True)
@@ -866,56 +868,102 @@ class MapWindow(QMainWindow):
 
         self.setCentralWidget(self.canvas)
 
-        self.actionZoomIn = QAction("Zoom in", self)
-        self.actionZoomOut = QAction("Zoom out", self)
-        self.actionPan = QAction("Pan", self)
+        #self.actionZoomIn = QAction("Zoom in", self)
+        #self.actionZoomOut = QAction("Zoom out", self)
+        self.actionGet = QAction("Return selected", self)
+        self.actionPan = QAction("Pan tool", self)
+        self.actionSelect = QAction("Select tool", self)
+        self.actionClear = QAction("Clear selection", self)
+        self.actionCancel = QAction("Cancel", self)
 
-        self.actionZoomIn.setCheckable(True)
-        self.actionZoomOut.setCheckable(True)
+        #self.actionZoomIn.setCheckable(True)
+        #self.actionZoomOut.setCheckable(True)
         self.actionPan.setCheckable(True)
+        self.actionSelect.setCheckable(True)
 
-        self.actionZoomIn.triggered.connect(self.zoomIn)
-        self.actionZoomOut.triggered.connect(self.zoomOut)
+        #self.actionZoomIn.triggered.connect(self.zoomIn)
+        #self.actionZoomOut.triggered.connect(self.zoomOut)
         self.actionPan.triggered.connect(self.pan)
+        self.actionSelect.triggered.connect(self.select)
+        self.actionClear.triggered.connect(self.clearSelection)
+        self.actionGet.triggered.connect(self.finishedSelection)
+        self.actionCancel.triggered.connect(self.cancel)
 
         self.toolbar = self.addToolBar("Canvas actions")
-        self.toolbar.addAction(self.actionZoomIn)
-        self.toolbar.addAction(self.actionZoomOut)
+        #self.toolbar.addAction(self.actionZoomIn)
+        #self.toolbar.addAction(self.actionZoomOut)
+        self.toolbar.addAction(self.actionGet)
         self.toolbar.addAction(self.actionPan)
+        self.toolbar.addAction(self.actionSelect)
+        self.toolbar.addAction(self.actionClear)
+        self.toolbar.addAction(self.actionCancel)
 
         # create the map tools
         self.toolPan = QgsMapToolPan(self.canvas)
         self.toolPan.setAction(self.actionPan)
+        self.toolSelect = QgsMapToolIdentifyFeature(self.canvas)
+        self.toolSelect.setAction(self.actionSelect)
+        
+        self.toolSelect.featureIdentified.connect(self.selectFeature)
+        
+        """
         self.toolZoomIn = QgsMapToolZoom(self.canvas, False) # false = in
         self.toolZoomIn.setAction(self.actionZoomIn)
         self.toolZoomOut = QgsMapToolZoom(self.canvas, True) # true = out
         self.toolZoomOut.setAction(self.actionZoomOut)
-
-        self.pan()
-
+        """
+        self.select()
+    """
     def zoomIn(self):
         self.canvas.setMapTool(self.toolZoomIn)
 
     def zoomOut(self):
         self.canvas.setMapTool(self.toolZoomOut)
-
+    """
     def pan(self):
         self.canvas.setMapTool(self.toolPan)
         
+    def select(self):
+        self.canvas.setMapTool(self.toolSelect)
+        
     def addLayer(self, layer):
-        QgsProject.instance().addMapLayer(layer, False)
-        layer.setLabelsEnabled(True)
+        self.selectedFeatures.clear()
+        self.layer = layer
+        QgsProject.instance().addMapLayer(self.layer, False)
+        self.layer.setLabelsEnabled(True)
         layer_labeling = QgsVectorLayerSimpleLabeling(self.label_settings)
-        layer.setLabeling(layer_labeling)
-        self.canvas.setExtent(layer.extent())
-        self.canvas.setLayers([layer])
+        self.layer.setLabeling(layer_labeling)
+        self.layer.renderer().symbol().setColor(Qt.gray)
+        self.toolSelect.setLayer(self.layer)
+        self.canvas.setExtent(self.layer.extent())
+        self.canvas.setLayers([self.layer])
         self.show()
-        """
-        start = time.time()
-        PERIOD_OF_TIME = 10
-        while True:
-            self.canvas.show()
-            if time.time() > start + PERIOD_OF_TIME : 
-                print("LOPETA")
-                break
-        """
+        
+    def selectFeature(self, feat):
+        name = feat[2]
+        idx  = feat.id()
+        if name in self.selectedFeatures:
+            self.layer.deselect(idx)
+            self.selectedFeatures.remove(name)
+        else:
+            self.layer.select(idx)
+            self.selectedFeatures.append(name)
+            
+    def clearSelection(self):
+        self.layer.removeSelection()
+        self.selectedFeatures.clear()
+        
+    def finishedSelection(self):
+        self.layer.removeSelection()
+        self.close()
+        QgsProject.instance().removeMapLayer(self.layer)
+        self.finished.emit()
+        
+    def getSelection(self):
+        return self.selectedFeatures
+    
+    def cancel(self):
+        self.layer.removeSelection()
+        self.close()
+        QgsProject.instance().removeMapLayer(self.layer)
+        
