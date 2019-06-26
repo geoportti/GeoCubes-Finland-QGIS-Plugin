@@ -22,22 +22,20 @@
  ***************************************************************************/
 """
 from PyQt5.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, 
-                          Qt, pyqtSignal)
-from PyQt5.QtGui import QIcon, QFont
+                          Qt)
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
-                             QSizePolicy, QMainWindow, QDialog)
+                             QSizePolicy)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
-                       QgsMessageLog, Qgis, QgsVectorLayer, QgsPalLayerSettings,
-                       QgsVectorLayerSimpleLabeling, QgsTextFormat, 
-                       QgsTextBufferSettings)
-from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar, QgsMapCanvas, 
-                      QgsMapToolPan, QgsMapToolZoom, QgsMapToolIdentifyFeature)
+                       QgsMessageLog, Qgis, QgsVectorLayer)
+from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .geocubes_plugin_dialog import GeocubesPluginDialog
 import os.path, requests
+from .MapWindow import MapWindow
 
 
 class GeocubesPlugin:
@@ -494,50 +492,48 @@ class GeocubesPlugin:
             # get info that's passed to the Geocubes server
             dataset_parameters = self.getValues()
             
-            # this is needed to form a while loop, which is needed for the busy dialog
-            done = False
-            
             # while datasets are downloaded, an indicator will be shown
             self.busy_dialog.show()
             
             # a simple count of succesful downloads
             successful_layers = 0
         
-            while not done:
-                # 1 to n loops to download all selected data
-                for parameter in dataset_parameters:
-                    # accessing values, which are stored as tuples
-                    name = parameter[0]
-                    year = parameter[1]
+            self.busy_dialog.show()
+            # 1 to n loops to download all selected data
+            for parameter in dataset_parameters:
+                # accessing values, which are stored as tuples
+                name = parameter[0]
+                year = parameter[1]
                     
-                    # forming the url that's passed to server
-                    # see http://86.50.168.160/geocubes/examples/ 
-                    # for examples of forming this url
-                    if self.bbox_radio_button.isChecked():
-                        data_url = self.getbBoxUrl(name, year)
-                    else:
-                        data_url = self.getAdminUrl(name, year)
+                    # forming the url that's passed to server. see:
+                    # http://86.50.168.160/geocubes/examples/ for examples.
+                    # Url uses either bbox or admin areas based on user choice
+                if self.bbox_radio_button.isChecked():
+                    data_url = self.getbBoxUrl(name, year)
+                else:
+                    data_url = self.getAdminUrl(name, year)
                     
-                    # creating raster layer by passing the url and giving
-                    # name and year as layer names
-                    raster_layer = QgsRasterLayer(data_url, ''.join([name, '_', year]))
+                # creating raster layer by passing the url and giving
+                # name and year as layer names
+                raster_layer = QgsRasterLayer(data_url, ''.join([name, '_', year]))
                     
-                    # if data query fails, inform user. If not, add to Qgis
-                    if not raster_layer.isValid():
-                        self.sendWarning("Layer invalid", ''.join([name,'_',year])+
-                                         " failed to download", 9)
-                    else:
-                        QgsProject.instance().addMapLayer(raster_layer)
-                        successful_layers += 1
+                # if data query fails, inform user. If not, add to Qgis
+                if not raster_layer.isValid():
+                    self.sendWarning("Layer invalid", ''.join([name,'_',year])+
+                                     " failed to download", 9)
+                else:
+                    QgsProject.instance().addMapLayer(raster_layer)
+                    successful_layers += 1
                 
-                # once all layers are downloaded, inform how many were succesful
-                self.updateDataText(str(successful_layers) + "/" +
-                                    str(len(dataset_parameters))+ " layer(s)" +
-                                    " successfully downloaded")
-                self.busy_dialog.close()
-                done = True
+            # once all layers are downloaded, inform how many were succesful
+            self.updateDataText(str(successful_layers) + "/" +
+                                str(len(dataset_parameters))+ " layer(s)" +
+                                " successfully downloaded")
+            self.busy_dialog.close()
+
                 
     def getbBoxUrl(self, name, year):
+        """Forms the url for a bbox clip"""
         extent = self.getExtent()
         bbox_url = (self.url_base + "/clip/" + self.resolution +
                         "/"+ name +"/bbox:" + self.formatExtent(extent)
@@ -545,6 +541,7 @@ class GeocubesPlugin:
         return bbox_url
     
     def getAdminUrl(self, name, year):
+        """Forms the url for an admin area clip"""
         areas = self.areaBoxSelection()
         admin_url = (self.url_base + "/clip/" + self.resolution +"/"+ name +
                      "/"+self.admin_area.lower()+":" + self.formatAreas(areas)
@@ -577,15 +574,22 @@ class GeocubesPlugin:
             self.vlayer = vector_layer
 
     def openMapWindow(self):
+        """Check if user has selected an admin layer. If yes, pass a copy of 
+            that layer to the window and open it"""
         if not self.vlayer:
             self.sendWarning("Layer missing", "Select admin area first", 6)
         else:
+            # vector layer itself can't be passed to the mapwindow, since
+            # it's removed from project after use. This also deletes the layer.
+            # Therefore, an exact copy is created
             scrap_vlayer = QgsVectorLayer(self.vlayer.source(), "Scrap", 
                                           self.vlayer.providerType())
             self.map_canvas.addLayer(scrap_vlayer)
 
             
     def mapSelectionToBox(self):
+        """Activated when map canvas emits 'finished' signal. Gets a list of
+            items selected by the user and checks these on the areas box"""
         map_selection = self.map_canvas.getSelection()
         self.areas_box.setCheckedItems(map_selection)
             
@@ -598,11 +602,11 @@ class GeocubesPlugin:
         # loop through features or rows in the layer
         for feature in vlayer.getFeatures():
             name_fi = feature[2]
-            #id_code = feature[1]
+            id_code = feature[1]
             # create a string from Finnish name and id code
-            #key = name_fi + ", " + str(id_code)
+            key = name_fi + "; " + str(id_code)
             
-            name_list.append(name_fi)
+            name_list.append(key)
         
         name_list.sort()
         # add all area strings to the box
@@ -610,6 +614,7 @@ class GeocubesPlugin:
         self.busy_dialog.close()
         
     def areaBoxSelection(self):
+        """Returns current selection in the 'Areas' drop box as a list"""
         return self.areas_box.checkedItems()
         
     def collapseExtentBox(self):
@@ -655,7 +660,7 @@ class GeocubesPlugin:
             codes = ""
             # loop through 1 to n areas. For each, add id code to string
             for area in areas:
-                area_split = area.split(", ")
+                area_split = area.split("; ")
                 code = area_split[len(area_split)-1]
                 if not codes:
                     codes = code
@@ -665,6 +670,8 @@ class GeocubesPlugin:
         
     def run(self):
         """Run method that performs all the real work"""
+        
+        """DATANHAKU EI TOIMI JOS ALUEESSA ON VÄLI. KORJAA!!"""
 
         # if the plugin is started for the first time,
         # create necessary variables and connect signals to slots
@@ -720,7 +727,6 @@ class GeocubesPlugin:
             self.map_select_button = self.dlg.mapSelectButton
             self.map_select_button.clicked.connect(self.openMapWindow)
             
-            
             # text that tells the user the current count of selected layers
             self.layer_count_text = self.dlg.layerCountText
             
@@ -756,6 +762,8 @@ class GeocubesPlugin:
             self.msg_bar.setMinimumSize(550, 80)
             self.msg_bar.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
             
+            # false to indicate no vector layer is selected: will change, if
+            # user selects an admin area
             self.vlayer = False
             
             self.map_canvas = MapWindow()
@@ -816,11 +824,8 @@ class GeocubesPlugin:
         
         # show the dialog
         self.dlg.show()
+        
         self.uncollapseExtentBox()
-        """
-        self.map_canvas.setMinimumSize(550, 150)
-        self.map_canvas.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        """
 
         # Run the dialog event loop
 """
@@ -831,139 +836,5 @@ class GeocubesPlugin:
         >https://qgis.org/api/classQgsRasterFileWriter.html#a660aecebe6791d543b8c568edf0084f0
         >writeRaster:
             >https://qgis.org/api/classQgsRasterFileWriter.html#a660aecebe6791d543b8c568edf0084f0
+
 """
-class MapWindow(QMainWindow):
-    finished = pyqtSignal()
-    def __init__(self):
-        QMainWindow.__init__(self)
-
-
-        self.canvas = QgsMapCanvas()
-        self.canvas.setMinimumSize(350, 350)
-        self.canvas.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        self.canvas.setCanvasColor(Qt.white)
-        self.canvas.enableAntiAliasing(True)
-
-        #self.canvas.setExtent(layer.extent())
-        #self.canvas.setLayers([layer])
-        
-        self.selectedFeatures = []
-        
-        self.label_settings = QgsPalLayerSettings()
-        text_format = QgsTextFormat()
-        
-        text_format.setFont(QFont("Helvetica", 12))
-        text_format.setSize(6.5)
-        
-        buffer_settings = QgsTextBufferSettings()
-        buffer_settings.setEnabled(True)
-        buffer_settings.setSize(0.6)
-        buffer_settings.setColor(Qt.white)
-        
-        text_format.setBuffer(buffer_settings)
-        self.label_settings.setFormat(text_format)
-        self.label_settings.fieldName = "namefin"
-        self.label_settings.placement = 0
-        self.label_settings.enabled = True
-
-        self.setCentralWidget(self.canvas)
-
-        #self.actionZoomIn = QAction("Zoom in", self)
-        #self.actionZoomOut = QAction("Zoom out", self)
-        self.actionGet = QAction("Return selected", self)
-        self.actionPan = QAction("Pan tool", self)
-        self.actionSelect = QAction("Select tool", self)
-        self.actionClear = QAction("Clear selection", self)
-        self.actionCancel = QAction("Cancel", self)
-
-        #self.actionZoomIn.setCheckable(True)
-        #self.actionZoomOut.setCheckable(True)
-        self.actionPan.setCheckable(True)
-        self.actionSelect.setCheckable(True)
-
-        #self.actionZoomIn.triggered.connect(self.zoomIn)
-        #self.actionZoomOut.triggered.connect(self.zoomOut)
-        self.actionPan.triggered.connect(self.pan)
-        self.actionSelect.triggered.connect(self.select)
-        self.actionClear.triggered.connect(self.clearSelection)
-        self.actionGet.triggered.connect(self.finishedSelection)
-        self.actionCancel.triggered.connect(self.cancel)
-
-        self.toolbar = self.addToolBar("Canvas actions")
-        #self.toolbar.addAction(self.actionZoomIn)
-        #self.toolbar.addAction(self.actionZoomOut)
-        self.toolbar.addAction(self.actionGet)
-        self.toolbar.addAction(self.actionPan)
-        self.toolbar.addAction(self.actionSelect)
-        self.toolbar.addAction(self.actionClear)
-        self.toolbar.addAction(self.actionCancel)
-
-        # create the map tools
-        self.toolPan = QgsMapToolPan(self.canvas)
-        self.toolPan.setAction(self.actionPan)
-        self.toolSelect = QgsMapToolIdentifyFeature(self.canvas)
-        self.toolSelect.setAction(self.actionSelect)
-        
-        self.toolSelect.featureIdentified.connect(self.selectFeature)
-        
-        """
-        self.toolZoomIn = QgsMapToolZoom(self.canvas, False) # false = in
-        self.toolZoomIn.setAction(self.actionZoomIn)
-        self.toolZoomOut = QgsMapToolZoom(self.canvas, True) # true = out
-        self.toolZoomOut.setAction(self.actionZoomOut)
-        """
-        self.select()
-    """
-    def zoomIn(self):
-        self.canvas.setMapTool(self.toolZoomIn)
-
-    def zoomOut(self):
-        self.canvas.setMapTool(self.toolZoomOut)
-    """
-    def pan(self):
-        self.canvas.setMapTool(self.toolPan)
-        
-    def select(self):
-        self.canvas.setMapTool(self.toolSelect)
-        
-    def addLayer(self, layer):
-        self.selectedFeatures.clear()
-        self.layer = layer
-        QgsProject.instance().addMapLayer(self.layer, False)
-        self.layer.setLabelsEnabled(True)
-        layer_labeling = QgsVectorLayerSimpleLabeling(self.label_settings)
-        self.layer.setLabeling(layer_labeling)
-        self.layer.renderer().symbol().setColor(Qt.gray)
-        self.toolSelect.setLayer(self.layer)
-        self.canvas.setExtent(self.layer.extent())
-        self.canvas.setLayers([self.layer])
-        self.show()
-        
-    def selectFeature(self, feat):
-        name = feat[2]
-        idx  = feat.id()
-        if name in self.selectedFeatures:
-            self.layer.deselect(idx)
-            self.selectedFeatures.remove(name)
-        else:
-            self.layer.select(idx)
-            self.selectedFeatures.append(name)
-            
-    def clearSelection(self):
-        self.layer.removeSelection()
-        self.selectedFeatures.clear()
-        
-    def finishedSelection(self):
-        self.layer.removeSelection()
-        self.close()
-        QgsProject.instance().removeMapLayer(self.layer)
-        self.finished.emit()
-        
-    def getSelection(self):
-        return self.selectedFeatures
-    
-    def cancel(self):
-        self.layer.removeSelection()
-        self.close()
-        QgsProject.instance().removeMapLayer(self.layer)
-        
