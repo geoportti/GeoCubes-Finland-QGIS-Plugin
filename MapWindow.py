@@ -23,8 +23,8 @@ class MapWindow(QMainWindow):
     
     def __init__(self):
         QMainWindow.__init__(self)
-        self.setWindowFlags(Qt.CustomizeWindowHint)
-        self.setWindowFlags(Qt.WindowMinMaxButtonsHint)
+        #self.setWindowFlags(Qt.CustomizeWindowHint)
+        #self.setWindowFlags(Qt.WindowMinMaxButtonsHint)
         
         # creating map canvas, which draws the maplayers
         # setting up features like canvas color
@@ -35,7 +35,7 @@ class MapWindow(QMainWindow):
         self.canvas.enableAntiAliasing(True)
 
         # empty list for selected polygons
-        self.selectedFeatures = []
+        self.selected_features = []
         
         # setting up label settings: object below houses all of them
         self.label_settings = QgsPalLayerSettings()
@@ -115,13 +115,13 @@ class MapWindow(QMainWindow):
         """Called when user click button on the main plugin: receives a vector
             layer, sets up labels & rendering parameters and shows the layer."""
         # empty output list in case function is called multiple times
-        self.selectedFeatures.clear()
+        self.selected_features.clear()
         
         # layer into a self variable
         self.layer = layer
         
         # add layer to project: required to show it on screen
-        # False = do not show the layer on the legend listing
+        # False = do not show the layer on the legend listing nor draw on main canvas
         QgsProject.instance().addMapLayer(self.layer, False)
         
         # set up visual stuff
@@ -151,33 +151,37 @@ class MapWindow(QMainWindow):
         idx  = feat.id()
         
         label = name + "; " + code
-        if label in self.selectedFeatures:
+        if label in self.selected_features:
             self.layer.deselect(idx)
-            self.selectedFeatures.remove(label)
+            self.selected_features.remove(label)
         else:
             self.layer.select(idx)
-            self.selectedFeatures.append(label)
+            self.selected_features.append(label)
             
     def clearSelection(self):
         """Clear map selection and list on button click"""
         self.layer.removeSelection()
-        self.selectedFeatures.clear()
+        self.selected_features.clear()
         
     def finishedSelection(self):
-        """Activated when user 'returns selection'. Clears canvas, closes the 
-            window, removes map layer and emits a signal to indicate the job is done."""
-        self.layer.removeSelection()
+        """Activated when user clicks 'returns selection'. Closes window
+            and emits signal to indicate the job is finished"""
         self.close()
-        QgsProject.instance().removeMapLayer(self.layer)
         self.finished.emit()
+        
+    def cancel(self):
+        """In case user changes their mind. Does the same as above, but doesn't
+            emit signal."""
+        self.close()
         
     def getSelection(self):
         """Returns list of selected features (polygons)"""
-        return self.selectedFeatures
-    
-    def cancel(self):
-        """In case user changes their mind. Does the same as above, but doesn't
-            emit the signal."""
+        return self.selected_features
+        
+    def closeEvent(self, event):
+        """Activated anytime Mapwindow is closed either programmatically or
+            if the user finds some other way to close the window. Removes
+            selection and deletes scrap maplayer."""
         self.layer.removeSelection()
-        self.close()
         QgsProject.instance().removeMapLayer(self.layer)
+        QMainWindow.closeEvent(self, event)

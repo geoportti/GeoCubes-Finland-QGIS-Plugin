@@ -252,6 +252,7 @@ class GeocubesPlugin:
             return dataset_list
     
     def getLabels(self, name):
+        """Requests label values for a specific layer and return that csv string"""
         response = requests.get(self.url_base+"/legend/listLabels/"+name,
                                 timeout=6)
         status_code = response.status_code
@@ -508,11 +509,14 @@ class GeocubesPlugin:
         """
         # nothing will be downloaded if nothing is selected. Notifies user. Else continue
         if(len(self.datasets_to_download) == 0):
-            self.sendWarning("Missing data", "Please select one or more layers!", 8)
+            self.sendWarning("Missing data", "Please select one or more data layers!", 8)
         elif not self.resolution:
             self.sendWarning("Missing data", "Please select resolution!", 8)
         elif self.admin_radio_button.isChecked() and len(self.areas_box.checkedItems()) == 0:
             self.sendWarning("Missing selection","Please select admin areas!", 8)
+        elif not self.admin_radio_button.isChecked() and not self.bbox_radio_button.isChecked():
+            self.sendWarning("Crop method missing","Please select either bbox "+
+                                 "or admin area method", 8)
         else:
             # get info that's passed to the Geocubes server
             dataset_parameters = self.getValues()
@@ -530,9 +534,9 @@ class GeocubesPlugin:
                 name = parameter[0]
                 year = parameter[1]
                     
-                    # forming the url that's passed to server. see:
-                    # http://86.50.168.160/geocubes/examples/ for examples.
-                    # Url uses either bbox or admin areas based on user choice
+                # forming the url that's passed to server. see:
+                # http://86.50.168.160/geocubes/examples/ for examples.
+                # Url uses either bbox or admin areas based on user choice
                 if self.bbox_radio_button.isChecked():
                     data_url = self.formBboxUrl(name, year)
                 else:
@@ -547,12 +551,18 @@ class GeocubesPlugin:
                     self.sendWarning("Layer invalid", ''.join([name,'_',year])+
                                      " failed to download", 9)
                 else:
+                    """If raster layer renderer is of type QgsPalettedRasterRenderer,
+                        it's most likely categorized data that has labels.
+                        These labels are first queried, then formatted and
+                        lastly inserted to the layer. Otherwise the step is skipped"""
+
                     if raster_layer.renderer().type() == 'paletted':
                         label_string = self.getLabels(name)
                         if label_string:
                             label_list = self.formatLabels(label_string)
                             self.insertLabels(label_list, raster_layer.renderer())
-                        
+                    
+                    # insert raster layer to main canvas and Qgis legend for use
                     QgsProject.instance().addMapLayer(raster_layer)
                     successful_layers += 1
                 
@@ -563,16 +573,25 @@ class GeocubesPlugin:
             self.busy_dialog.close()
     
     def formatLabels(self, label_string):
+        """Server returns a string with items separated by commas. This function
+            formats that data so that the output is a list of tuples. The tuples
+            consist of an index number (which value the label refers to) and
+            the label itself.
+            """
         label_list = label_string.split(',')
         formatted_labels = []
         
         for label in label_list:
+            # example label looks like this: Uusimaa(1)
+            # splitting at bracket allows us to handle both name and idx
             split_label = label.split("(")
             name = split_label[0]
             number_string = split_label[len(split_label)-1]
             
+            # a regex query is made to catch 1 to n numbers
             regex_nmr = re.search("[0-9]+", number_string)
             
+            # if the query fails, do nothing. Else, add to list
             if regex_nmr is None:
                 pass
             else:
@@ -583,6 +602,8 @@ class GeocubesPlugin:
         return formatted_labels
     
     def insertLabels(self, labels, renderer):
+        """Renderer houses classification of the data. This combines the labels
+            with the correct raster values (index values)"""
         for label in labels:
             index = int(label[0])
             name = label[1]
@@ -619,11 +640,11 @@ class GeocubesPlugin:
         url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
         "&request=GetFeature&typename="+area_name+"&pagingEnabled=true")
         
-        # pass url and other relevant data to create a layer
-        vector_layer = QgsVectorLayer(url, "WFS-layer", "WFS")
+        # pass url, label and data provider
+        vector_layer = QgsVectorLayer(url, "WFS-layer-REMOVE", "WFS")
         
         if not vector_layer.isValid():
-            self.sendWarning("Query error", "WFS query failed",8)
+            self.sendWarning("Query error", "WFS query failed", 8)
             self.busy_dialog.close()
         else:
             # if everything went well, run another function on the layer
@@ -633,8 +654,8 @@ class GeocubesPlugin:
     def openMapWindow(self):
         """Check if user has selected an admin layer. If yes, pass a copy of 
             that layer to the window and open it"""
-        if not self.vlayer:
-            self.sendWarning("Layer missing", "Select admin area first", 6)
+        if (not self.vlayer or not self.admin_areas_box.currentText()):
+            self.sendWarning("Layer missing", "Select admin division first", 6)
         else:
             # vector layer itself can't be passed to the mapwindow, since
             # it's removed from project after use. This also deletes the layer.
@@ -691,8 +712,8 @@ class GeocubesPlugin:
         Returns a rectangle object"""
         output_extent = self.extent_box.outputExtent()
         return output_extent
+    
         """
-        
         QgsMessageLog.logMessage(output_extent,
                                  'geocubes_plugin',
                                  Qgis.Info)
@@ -868,7 +889,7 @@ class GeocubesPlugin:
         self.updateCountText()
         self.data_info_text.setText('Get datasets here')
         
-        self.bbox_radio_button.setChecked(True)
+        #self.bbox_radio_button.setChecked(True)
         
         self.save_temp_button.setChecked(True)
         
