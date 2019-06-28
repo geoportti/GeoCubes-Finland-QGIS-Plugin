@@ -23,11 +23,13 @@ class MapWindow(QMainWindow):
     
     def __init__(self):
         QMainWindow.__init__(self)
+        self.setWindowFlags(Qt.CustomizeWindowHint)
+        self.setWindowFlags(Qt.WindowMinMaxButtonsHint)
         
         # creating map canvas, which draws the maplayers
         # setting up features like canvas color
         self.canvas = QgsMapCanvas()
-        self.canvas.setMinimumSize(400, 500)
+        self.canvas.setMinimumSize(550, 700)
         self.canvas.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.canvas.setCanvasColor(Qt.white)
         self.canvas.enableAntiAliasing(True)
@@ -42,12 +44,12 @@ class MapWindow(QMainWindow):
         text_format = QgsTextFormat()
         
         text_format.setFont(QFont("Helvetica", 12))
-        text_format.setSize(6.5)
+        text_format.setSize(7)
         
         # setting up a white buffer around the labels
         buffer_settings = QgsTextBufferSettings()
         buffer_settings.setEnabled(True)
-        buffer_settings.setSize(0.6)
+        buffer_settings.setSize(0.65)
         buffer_settings.setColor(Qt.white)
         text_format.setBuffer(buffer_settings)
         
@@ -64,11 +66,11 @@ class MapWindow(QMainWindow):
         self.setCentralWidget(self.canvas)
         
         # creating each desired action
-        self.actionGet = QAction("Return selected", self)
+        self.actionGet = QAction("Return selected and close", self)
         self.actionPan = QAction("Pan tool", self)
         self.actionSelect = QAction("Select tool", self)
         self.actionClear = QAction("Clear selection", self)
-        self.actionCancel = QAction("Cancel", self)
+        self.actionCancel = QAction("Cancel and close", self)
         
         # these two function as on/off. the rest are clickable
         self.actionPan.setCheckable(True)
@@ -84,6 +86,8 @@ class MapWindow(QMainWindow):
         # toolbar at the top of the screen: houses actions as buttons
         # change order here to change their placement on window
         self.toolbar = self.addToolBar("Canvas actions")
+        self.toolbar.setContextMenuPolicy(Qt.PreventContextMenu)
+        self.toolbar.setMovable(False)
         self.toolbar.addAction(self.actionGet)
         self.toolbar.addAction(self.actionPan)
         self.toolbar.addAction(self.actionSelect)

@@ -34,7 +34,7 @@ from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
 from .resources import *
 # Import the code for the dialog
 from .geocubes_plugin_dialog import GeocubesPluginDialog
-import os.path, requests
+import os.path, requests, re
 from .MapWindow import MapWindow
 
 
@@ -231,37 +231,62 @@ class GeocubesPlugin:
             
     def getDatasets(self):
         """Sends a query to Geocubes and receives text describing the data.
-           Returns a list of strings containing the datasets"""
+           Returns a list of strings containing the datasets if query succeeds"""
         
         # request info from the server: if no response in 10 seconds, timeout
-        response = requests.get(self.url_base + "/info/getDatasets", timeout=10)
+        response = requests.get(self.url_base + "/info/getDatasets", timeout=6)
         
         # request status code indicates whether succesful: if not, return false
         # and warn user
-        s_code = response.status_code
+        status_code = response.status_code
         
+        valid_check = self.requestValidity(status_code, "datasets")
+        
+        if not valid_check:
+            return
+        else:
+            # decode from bytes to string
+            response_string = response.content.decode("utf-8")
+            # datasets are divided by semicolons: split at semicolons
+            dataset_list = response_string.split(';')
+            return dataset_list
+    
+    def getLabels(self, name):
+        response = requests.get(self.url_base+"/legend/listLabels/"+name,
+                                timeout=6)
+        status_code = response.status_code
+        
+        valid_check = self.requestValidity(status_code, "labels")
+        
+        if not valid_check:
+            return
+        else:
+            # decode from bytes to string
+            response_string = response.content.decode("utf-8")
+            
+            return response_string
+        
+        
+    
+    def requestValidity(self, s_code, request_type):
+        """Should the network query fail, show a informative warning 
+            and return false"""
         if (s_code == 204):
-            self.sendWarning("Empty response", "Failed to fetch datasets. Error: "+
-                             str(s_code), 10)
+            self.sendWarning("Empty response", "Failed to fetch " + request_type
+                             + ". Error: "+ str(s_code), 8)
             return False
         
-        if (s_code >= 500):
-            self.sendWarning("Server error", "Failed to fetch datasets. Error: "+
-                             str(s_code), 10)
+        elif (s_code >= 500):
+            self.sendWarning("Server error", "Failed to fetch " + request_type +
+                             ". Error: "+ str(s_code), 8)
             return False
         
-        if (s_code >= 400):
-            self.sendWarning("Client error", "Failed to fetch datasets. Code: "+
-                             str(s_code), 10)
+        elif (s_code >= 400):
+            self.sendWarning("Client error", "Failed to fetch " + request_type +
+                             "Code: "+str(s_code), 8)
             return False
-
-        # decode from bytes to string
-        response_string = response.content.decode("utf-8")
-
-        # datasets are divided by semicolons: split at semicolons
-        dataset_list = response_string.split(';')
-
-        return dataset_list
+        else:
+            return True
 
     def setToTable(self):
         """
@@ -483,11 +508,11 @@ class GeocubesPlugin:
         """
         # nothing will be downloaded if nothing is selected. Notifies user. Else continue
         if(len(self.datasets_to_download) == 0):
-            self.updateDataText("Please select one or more layers!")
+            self.sendWarning("Missing data", "Please select one or more layers!", 8)
         elif not self.resolution:
-            self.updateDataText("Please select resolution!")
+            self.sendWarning("Missing data", "Please select resolution!", 8)
         elif self.admin_radio_button.isChecked() and len(self.areas_box.checkedItems()) == 0:
-            self.updateDataText("Please select admin areas!")
+            self.sendWarning("Missing selection","Please select admin areas!", 8)
         else:
             # get info that's passed to the Geocubes server
             dataset_parameters = self.getValues()
@@ -509,9 +534,9 @@ class GeocubesPlugin:
                     # http://86.50.168.160/geocubes/examples/ for examples.
                     # Url uses either bbox or admin areas based on user choice
                 if self.bbox_radio_button.isChecked():
-                    data_url = self.getbBoxUrl(name, year)
+                    data_url = self.formBboxUrl(name, year)
                 else:
-                    data_url = self.getAdminUrl(name, year)
+                    data_url = self.formAdminUrl(name, year)
                     
                 # creating raster layer by passing the url and giving
                 # name and year as layer names
@@ -522,6 +547,12 @@ class GeocubesPlugin:
                     self.sendWarning("Layer invalid", ''.join([name,'_',year])+
                                      " failed to download", 9)
                 else:
+                    if raster_layer.renderer().type() == 'paletted':
+                        label_string = self.getLabels(name)
+                        if label_string:
+                            label_list = self.formatLabels(label_string)
+                            self.insertLabels(label_list, raster_layer.renderer())
+                        
                     QgsProject.instance().addMapLayer(raster_layer)
                     successful_layers += 1
                 
@@ -530,9 +561,35 @@ class GeocubesPlugin:
                                 str(len(dataset_parameters))+ " layer(s)" +
                                 " successfully downloaded")
             self.busy_dialog.close()
-
+    
+    def formatLabels(self, label_string):
+        label_list = label_string.split(',')
+        formatted_labels = []
+        
+        for label in label_list:
+            split_label = label.split("(")
+            name = split_label[0]
+            number_string = split_label[len(split_label)-1]
+            
+            regex_nmr = re.search("[0-9]+", number_string)
+            
+            if regex_nmr is None:
+                pass
+            else:
+                nmr = regex_nmr.group()
+                formatted_label = (nmr, name)
+                formatted_labels.append(formatted_label)
                 
-    def getbBoxUrl(self, name, year):
+        return formatted_labels
+    
+    def insertLabels(self, labels, renderer):
+        for label in labels:
+            index = int(label[0])
+            name = label[1]
+            
+            renderer.setLabel(index, name)
+                            
+    def formBboxUrl(self, name, year):
         """Forms the url for a bbox clip"""
         extent = self.getExtent()
         bbox_url = (self.url_base + "/clip/" + self.resolution +
@@ -540,7 +597,7 @@ class GeocubesPlugin:
                         + "/" + year)
         return bbox_url
     
-    def getAdminUrl(self, name, year):
+    def formAdminUrl(self, name, year):
         """Forms the url for an admin area clip"""
         areas = self.areaBoxSelection()
         admin_url = (self.url_base + "/clip/" + self.resolution +"/"+ name +
@@ -566,7 +623,7 @@ class GeocubesPlugin:
         vector_layer = QgsVectorLayer(url, "WFS-layer", "WFS")
         
         if not vector_layer.isValid():
-            self.updateDataText("WFS query failed")
+            self.sendWarning("Query error", "WFS query failed",8)
             self.busy_dialog.close()
         else:
             # if everything went well, run another function on the layer
@@ -582,14 +639,14 @@ class GeocubesPlugin:
             # vector layer itself can't be passed to the mapwindow, since
             # it's removed from project after use. This also deletes the layer.
             # Therefore, an exact copy is created
-            scrap_vlayer = QgsVectorLayer(self.vlayer.source(), "Scrap", 
-                                          self.vlayer.providerType())
+            scrap_vlayer = self.vlayer.clone()
             self.map_canvas.addLayer(scrap_vlayer)
 
             
     def mapSelectionToBox(self):
         """Activated when map canvas emits 'finished' signal. Gets a list of
             items selected by the user and checks these on the areas box"""
+        self.areas_box.deselectAllOptions ()
         map_selection = self.map_canvas.getSelection()
         self.areas_box.setCheckedItems(map_selection)
             
@@ -670,8 +727,6 @@ class GeocubesPlugin:
         
     def run(self):
         """Run method that performs all the real work"""
-        
-        """DATANHAKU EI TOIMI JOS ALUEESSA ON VÄLI. KORJAA!!"""
 
         # if the plugin is started for the first time,
         # create necessary variables and connect signals to slots
@@ -682,11 +737,8 @@ class GeocubesPlugin:
             # the ui
             self.dlg = GeocubesPluginDialog()
             
-            # current base url (shared by all queries) of the Geocubes project. Modify if url changes
-            self.url_base = "http://86.50.168.160/geocubes"
             self.url_base_field = self.dlg.urlBaseField
             self.url_base_field.textEdited.connect(self.updateBaseUrl)
-            
             
             # table to house the datasets: also add policies to fit the data
             # better on the table
@@ -768,6 +820,11 @@ class GeocubesPlugin:
             
             self.map_canvas = MapWindow()
             self.map_canvas.finished.connect(self.mapSelectionToBox)
+            
+        """Code below is ran every time the plugin is restarted but Qgis isn't"""
+        
+        # current base url (shared by all queries) of the Geocubes project. Modify if url changes
+        self.url_base = "http://86.50.168.160/geocubes"
         
         # list of possible resolutions. Update if this changes
         resolutions = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
@@ -827,7 +884,6 @@ class GeocubesPlugin:
         
         self.uncollapseExtentBox()
 
-        # Run the dialog event loop
 """
         MITEN SAADA RASTERITASO TALLENNETTUA:
         >provider = rlayer.dataProvider()
