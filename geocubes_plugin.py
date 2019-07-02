@@ -195,7 +195,7 @@ class GeocubesPlugin:
         self.admin_area = self.admin_areas_box.currentText()
         
     def sendWarning(self, title, text, duration):
-        """Creates a warning on the top of the widget"""
+        """Creates an informative warning on the top of the widget"""
         self.msg_bar.pushMessage(title, text, Qgis.Warning, 
                              duration = duration)
         
@@ -541,7 +541,7 @@ class GeocubesPlugin:
                     data_url = self.formBboxUrl(name, year)
                 else:
                     data_url = self.formAdminUrl(name, year)
-                    
+                
                 # creating raster layer by passing the url and giving
                 # name and year as layer names
                 raster_layer = QgsRasterLayer(data_url, ''.join([name, '_', year]))
@@ -578,7 +578,7 @@ class GeocubesPlugin:
             consist of an index number (which value the label refers to) and
             the label itself.
             """
-        label_list = label_string.split(',')
+        label_list = label_string.split(';')
         formatted_labels = []
         
         for label in label_list:
@@ -602,7 +602,7 @@ class GeocubesPlugin:
         return formatted_labels
     
     def insertLabels(self, labels, renderer):
-        """Renderer houses classification of the data. This combines the labels
+        """Renderer houses classification of the data. Method combines the labels
             with the correct raster values (index values)"""
         for label in labels:
             index = int(label[0])
@@ -635,7 +635,10 @@ class GeocubesPlugin:
             return
         
         # create a string to fetch the correct data
-        area_name = "ogiir:" + self.admin_area.lower() + "_2018_4500k"
+        area_name = "ogiir:" + self.admin_area.lower()
+        if self.admin_area != "Blocks":
+            area_name = area_name + "_2018_4500k"
+        
         self.busy_dialog.show()
         url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
         "&request=GetFeature&typename="+area_name+"&pagingEnabled=true")
@@ -648,7 +651,10 @@ class GeocubesPlugin:
             self.busy_dialog.close()
         else:
             # if everything went well, run another function on the layer
-            self.updateAreaBox(vector_layer)
+            if self.admin_area == "Blocks":
+                self.updateAreaBox(vector_layer, block_flag = True)
+            else:
+                self.updateAreaBox(vector_layer)
             self.vlayer = vector_layer
 
     def openMapWindow(self):
@@ -658,31 +664,41 @@ class GeocubesPlugin:
             self.sendWarning("Layer missing", "Select admin division first", 6)
         else:
             # vector layer itself can't be passed to the mapwindow, since
-            # it's removed from project after use. This also deletes the layer.
+            # it's removed from project after use – removal deletes the layer.
             # Therefore, an exact copy is created
             scrap_vlayer = self.vlayer.clone()
-            self.map_canvas.addLayer(scrap_vlayer)
+            if self.admin_area == "Blocks":
+                self.map_canvas.addLayer(scrap_vlayer, blocks_flag = True)
+            else:
+                self.map_canvas.addLayer(scrap_vlayer)
 
             
     def mapSelectionToBox(self):
         """Activated when map canvas emits 'finished' signal. Gets a list of
             items selected by the user and checks these on the areas box"""
-        self.areas_box.deselectAllOptions ()
+        self.areas_box.deselectAllOptions()
         map_selection = self.map_canvas.getSelection()
         self.areas_box.setCheckedItems(map_selection)
             
-    def updateAreaBox(self, vlayer):
+    def updateAreaBox(self, vlayer, block_flag = False):
         """Populates the selectable box with whatever administrative areas
             the user has picked."""
         self.areas_box.clear()
         name_list = []
+        block_minus = 0
+        
+        if block_flag:
+            block_minus = 1
         
         # loop through features or rows in the layer
         for feature in vlayer.getFeatures():
-            name_fi = feature[2]
-            id_code = feature[1]
+            name_fi = feature[2-block_minus]
+            id_code = feature[1-block_minus]
             # create a string from Finnish name and id code
-            key = name_fi + "; " + str(id_code)
+            if block_flag:
+                key = str(id_code) + "|" + str(name_fi)
+            else:
+                key = name_fi + "|" + str(id_code)
             
             name_list.append(key)
         
@@ -705,7 +721,6 @@ class GeocubesPlugin:
         """Updates extent boxes when the canvas extent changes"""
         self.extent_box.setCurrentExtent(self.canvas.extent(), self.proj_crs)
         self.extent_box.setOutputExtentFromCurrent()
-        
             
     def getExtent(self):
         """Current extent shown in the extent groupbox
@@ -729,16 +744,27 @@ class GeocubesPlugin:
     def formatAreas(self, areas):
         """Return areas selected by user in a format suitable for the url. Id codes
             are used to identify features. Nationwide (valtakunta) is a special case, since
-            it's handled differently to the other datasets serverside"""
+            it's handled differently to the other datasets serverside. Blocks
+            are also handled in a slightly different manner"""
             
         if self.admin_area == 'Valtakunta':
             return str(1)
+        if self.admin_area == "Blocks":
+            codes = ""
+            for area in areas:
+                area_split = area.split("|")
+                code = area_split[0] + "," + area_split[1]
+                if not codes:
+                    codes = code
+                else:
+                    codes = codes + "," + code
+            return codes
         else:
             # empty string forms a basis for the formatting
             codes = ""
             # loop through 1 to n areas. For each, add id code to string
             for area in areas:
-                area_split = area.split("; ")
+                area_split = area.split("|")
                 code = area_split[len(area_split)-1]
                 if not codes:
                     codes = code
@@ -792,7 +818,6 @@ class GeocubesPlugin:
             self.resolution_box.activated.connect(self.estimateFileSize)
             
             self.resolution_box.activated.connect(self.updateCountText)
-
             
             self.data_button = self.dlg.getDataButton
             self.data_button.clicked.connect(self.getData)
@@ -822,8 +847,10 @@ class GeocubesPlugin:
             
             self.admin_areas_box = self.dlg.adminAreasBox
             self.areas_box = self.dlg.areasBox
-            admin_area_labels = ['Valtakunta', 'Aluehallintovirastojako', 'Maakuntajako',
-                       'Kuntajako']
+            # below are the possible admin area divisions. Adjust if these
+            # change. Use the same names as the WFS server
+            admin_area_labels = ['Blocks', 'Valtakunta', 'Aluehallintovirastojako', 
+                                 'Maakuntajako', 'Kuntajako']
             self.admin_areas_box.addItems(label for label in admin_area_labels)
             self.admin_areas_box.currentTextChanged.connect(self.setAdminArea)
             self.admin_areas_box.currentTextChanged.connect(self.getAreas)

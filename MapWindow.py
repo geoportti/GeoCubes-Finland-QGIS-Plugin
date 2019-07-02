@@ -111,7 +111,7 @@ class MapWindow(QMainWindow):
     def select(self):
         self.canvas.setMapTool(self.toolSelect)
         
-    def addLayer(self, layer):
+    def addLayer(self, layer, blocks_flag = False):
         """Called when user click button on the main plugin: receives a vector
             layer, sets up labels & rendering parameters and shows the layer."""
         # empty output list in case function is called multiple times
@@ -119,6 +119,8 @@ class MapWindow(QMainWindow):
         
         # layer into a self variable
         self.layer = layer
+        
+        self.blocks_flag = blocks_flag
         
         # add layer to project: required to show it on screen
         # False = do not show the layer on the legend listing nor draw on main canvas
@@ -146,11 +148,16 @@ class MapWindow(QMainWindow):
             1. selects the feature on the map / deselects if already selected
             2. adds features to a list in the same format (name, id_code) as 
                 they're stored in the 'Admin areas box' in the main file """
-        code = feat[1]
-        name = feat[2]
         idx  = feat.id()
+        if self.blocks_flag:
+            xmin = feat[0]
+            ymax = feat[1]
+            label = str(xmin) + "|" + str(ymax) 
+        else:
+            code = feat[1]
+            name = feat[2]
+            label = name + "|" + code
         
-        label = name + "; " + code
         if label in self.selected_features:
             self.layer.deselect(idx)
             self.selected_features.remove(label)
