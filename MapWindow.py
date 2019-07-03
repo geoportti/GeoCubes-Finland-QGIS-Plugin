@@ -10,7 +10,8 @@ from qgis.PyQt.QtWidgets import QAction, QMainWindow, QSizePolicy
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
 from qgis.core import (QgsPalLayerSettings, QgsVectorLayerSimpleLabeling,
-                       QgsTextFormat, QgsTextBufferSettings, QgsProject)
+                       QgsTextFormat, QgsTextBufferSettings, QgsProject,
+                       QgsVectorLayer)
 from qgis.gui import (QgsMapCanvas, QgsMapToolPan, QgsMapToolIdentifyFeature)
 
 
@@ -54,7 +55,7 @@ class MapWindow(QMainWindow):
         text_format.setBuffer(buffer_settings)
         
         # label settings:
-        # fieldName = which field is shown as the label (currently finnish name)
+        # fieldName = which field is shown as the label (currently Finnish name)
         # placement = labels can be placed differently in relation to one another
         #              - see documentation for details
         self.label_settings.setFormat(text_format)
@@ -101,6 +102,8 @@ class MapWindow(QMainWindow):
         self.toolSelect.setAction(self.actionSelect)
         self.toolSelect.featureIdentified.connect(self.selectFeature)
         
+        self.blocks_flag = False
+        
         # set select tool as default
         self.select()
 
@@ -111,7 +114,7 @@ class MapWindow(QMainWindow):
     def select(self):
         self.canvas.setMapTool(self.toolSelect)
         
-    def addLayer(self, layer, blocks_flag = False):
+    def addLayer(self, layer):
         """Called when user click button on the main plugin: receives a vector
             layer, sets up labels & rendering parameters and shows the layer."""
         # empty output list in case function is called multiple times
@@ -119,8 +122,6 @@ class MapWindow(QMainWindow):
         
         # layer into a self variable
         self.layer = layer
-        
-        self.blocks_flag = blocks_flag
         
         # add layer to project: required to show it on screen
         # False = do not show the layer on the legend listing nor draw on main canvas
@@ -141,6 +142,39 @@ class MapWindow(QMainWindow):
         
         # show to user
         self.show()
+        
+    def addBlocksLayer(self, layer):
+        self.selected_features.clear()
+        self.blocks_flag = True
+        
+        self.layer = layer
+        
+        QgsProject.instance().addMapLayer(self.layer, False)
+        
+        self.layer.renderer().symbol().setColor(Qt.cyan)
+        self.layer.renderer().symbol().setOpacity(0.30)
+        
+        # select tool needs a vector layer assigned to it
+        self.toolSelect.setLayer(self.layer)
+        self.canvas.setExtent(self.layer.extent())
+        
+        # set layer to canvas
+        url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
+        "&request=GetFeature&typename=ogiir:maakuntajako_2018_4500k&pagingEnabled=true")
+        self.bg_layer = QgsVectorLayer(url, "BACKGROUND-REMOVE", "WFS")
+
+        if self.bg_layer.isValid():
+            self.bg_layer.setLabelsEnabled(True)
+            layer_labeling = QgsVectorLayerSimpleLabeling(self.label_settings)
+            self.bg_layer.setLabeling(layer_labeling)
+            self.bg_layer.renderer().symbol().setColor(Qt.gray)
+            QgsProject.instance().addMapLayer(self.bg_layer, False)
+            self.canvas.setLayers([self.layer, self.bg_layer])
+        else:
+            self.canvas.setLayers([self.layer])
+        
+        self.show()
+        
         
     def selectFeature(self, feat):
         """Activated when user clicks something on screen. This returns the
@@ -191,4 +225,9 @@ class MapWindow(QMainWindow):
             selection and deletes scrap maplayer."""
         self.layer.removeSelection()
         QgsProject.instance().removeMapLayer(self.layer)
+        try:
+            QgsProject.instance().removeMapLayer(self.bg_layer)
+        except Exception:
+            pass
+        self.blocks_flag = False
         QMainWindow.closeEvent(self, event)

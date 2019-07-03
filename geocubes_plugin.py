@@ -616,6 +616,9 @@ class GeocubesPlugin:
         bbox_url = (self.url_base + "/clip/" + self.resolution +
                         "/"+ name +"/bbox:" + self.formatExtent(extent)
                         + "/" + year)
+        
+        if self.vrt_radio_button.isChecked():
+            bbox_url = bbox_url+"/vrt/mr"
         return bbox_url
     
     def formAdminUrl(self, name, year):
@@ -624,6 +627,8 @@ class GeocubesPlugin:
         admin_url = (self.url_base + "/clip/" + self.resolution +"/"+ name +
                      "/"+self.admin_area.lower()+":" + self.formatAreas(areas)
                         + "/" + year)
+        if self.vrt_radio_button.isChecked():
+            admin_url = admin_url+"/vrt/mr"
         return admin_url
             
     def getAreas(self):
@@ -668,7 +673,7 @@ class GeocubesPlugin:
             # Therefore, an exact copy is created
             scrap_vlayer = self.vlayer.clone()
             if self.admin_area == "Blocks":
-                self.map_canvas.addLayer(scrap_vlayer, blocks_flag = True)
+                self.map_canvas.addBlocksLayer(scrap_vlayer)
             else:
                 self.map_canvas.addLayer(scrap_vlayer)
 
@@ -844,6 +849,9 @@ class GeocubesPlugin:
             self.bbox_radio_button.clicked.connect(self.uncollapseExtentBox)
             self.admin_radio_button.clicked.connect(self.collapseExtentBox)
             
+            self.gtiff_radio_button = self.dlg.gtiffRadioButton
+            self.vrt_radio_button = self.dlg.vrtRadioButton
+            
             
             self.admin_areas_box = self.dlg.adminAreasBox
             self.areas_box = self.dlg.areasBox
@@ -919,6 +927,8 @@ class GeocubesPlugin:
         #self.bbox_radio_button.setChecked(True)
         
         self.save_temp_button.setChecked(True)
+        
+        self.gtiff_radio_button.setChecked(True)
         
         # make sure the table is empty on restart
         self.table.clear()
