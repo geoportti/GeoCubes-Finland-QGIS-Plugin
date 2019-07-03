@@ -25,6 +25,12 @@
         <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
+        <property name="toolTip">
+         <string>Select which layers to download on this tab</string>
+        </property>
+        <property name="whatsThis">
+         <string/>
+        </property>
         <attribute name="title">
          <string>Layer selection</string>
         </attribute>
@@ -34,14 +40,14 @@
            <item>
             <widget class="QLabel" name="label">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="font">
               <font>
-               <pointsize>7</pointsize>
+               <pointsize>9</pointsize>
                <weight>75</weight>
                <bold>true</bold>
               </font>
@@ -52,7 +58,14 @@
             </widget>
            </item>
            <item>
-            <widget class="QLineEdit" name="urlBaseField"/>
+            <widget class="QLineEdit" name="urlBaseField">
+             <property name="toolTip">
+              <string>Edit to change the base url for the data</string>
+             </property>
+             <property name="whatsThis">
+              <string/>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QPushButton" name="getContents">
@@ -61,6 +74,12 @@
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="toolTip">
+              <string>Gets all available raster layers from the server and lists them below</string>
+             </property>
+             <property name="whatsThis">
+              <string/>
              </property>
              <property name="text">
               <string>Fetch data layers</string>
@@ -91,6 +110,12 @@
         </layout>
        </widget>
        <widget class="QWidget" name="tab_2">
+        <property name="toolTip">
+         <string>Crop data and select raster resolution here</string>
+        </property>
+        <property name="whatsThis">
+         <string/>
+        </property>
         <attribute name="title">
          <string>Extent and resolution</string>
         </attribute>
@@ -99,6 +124,9 @@
           <layout class="QVBoxLayout" name="verticalLayout_2">
            <item>
             <widget class="QRadioButton" name="bboxRadioButton">
+             <property name="toolTip">
+              <string>Bounding box crops data as a rectangle: select from existing layers, map extent or write values in boxes.</string>
+             </property>
              <property name="text">
               <string>Crop data with a bounding box</string>
              </property>
@@ -109,6 +137,19 @@
               <bool>false</bool>
              </property>
             </widget>
+           </item>
+           <item>
+            <spacer name="verticalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
            </item>
            <item>
             <widget class="QgsExtentGroupBox" name="mExtentGroupBox">
@@ -149,11 +190,26 @@
              </item>
              <item row="4" column="1">
               <widget class="QgsCheckableComboBox" name="areasBox">
-               <property name="maximumSize">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
                 <size>
                  <width>300</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
                  <height>16777215</height>
                 </size>
+               </property>
+               <property name="toolTip">
+                <string>Select areas by scrolling and clicking or write the first few letters of their name.</string>
                </property>
               </widget>
              </item>
@@ -204,6 +260,9 @@
                  <height>16777215</height>
                 </size>
                </property>
+               <property name="toolTip">
+                <string>Resolution of all datasets to be downloaded. If multiresolution VRT is seleted, this is the minimum resolution of the data.</string>
+               </property>
                <property name="currentText">
                 <string/>
                </property>
@@ -241,6 +300,9 @@
              </item>
              <item row="2" column="0">
               <widget class="QRadioButton" name="adminRadioButton">
+               <property name="toolTip">
+                <string>Use admin areas to crop the data along their borders. Division range from municipal to whole nation.</string>
+               </property>
                <property name="text">
                 <string>Crop data with admin areas</string>
                </property>
@@ -254,10 +316,26 @@
                  <height>16777215</height>
                 </size>
                </property>
+               <property name="toolTip">
+                <string>Click on the areas that are wanted, the select &quot;Return selected&quot;</string>
+               </property>
                <property name="text">
                 <string>Select from map</string>
                </property>
               </widget>
+             </item>
+             <item row="2" column="1">
+              <spacer name="horizontalSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </item>
@@ -306,6 +384,9 @@
           <layout class="QVBoxLayout" name="verticalLayout_7">
            <item>
             <widget class="QRadioButton" name="saveToTempButton">
+             <property name="toolTip">
+              <string>Adds the data to QGIS as layers. To save layers locally, select &quot;Export&quot; and &quot;Save as...&quot;</string>
+             </property>
              <property name="text">
               <string>Use as temp layer(s)</string>
              </property>
@@ -338,15 +419,21 @@
                <height>0</height>
               </size>
              </property>
+             <property name="toolTip">
+              <string>Get data as an image in Geotiff format</string>
+             </property>
              <property name="text">
-              <string>Get as Geotiff</string>
+              <string>Get as GeoTIFF</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QRadioButton" name="vrtRadioButton">
+             <property name="toolTip">
+              <string>Get the data as a virtual multiresolution raster</string>
+             </property>
              <property name="text">
-              <string>Get as Virtual Raster (VRT)</string>
+              <string>Get as Virtual File (VRT)</string>
              </property>
             </widget>
            </item>
@@ -363,7 +450,7 @@
        </property>
        <widget class="QPushButton" name="getDataButton">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
           <horstretch>10</horstretch>
           <verstretch>10</verstretch>
          </sizepolicy>
@@ -376,10 +463,13 @@
         </property>
         <property name="font">
          <font>
-          <pointsize>8</pointsize>
-          <weight>75</weight>
-          <bold>true</bold>
+          <pointsize>9</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
          </font>
+        </property>
+        <property name="toolTip">
+         <string>Select all necessary parameters, the press here to get the data</string>
         </property>
         <property name="text">
          <string>Get data</string>

@@ -570,7 +570,15 @@ class GeocubesPlugin:
             self.updateDataText(str(successful_layers) + "/" +
                                 str(len(dataset_parameters))+ " layer(s)" +
                                 " successfully downloaded")
+            self.clearSelections()
             self.busy_dialog.close()
+            
+    def clearSelections(self):
+        self.table.clear()
+        self.datasets_to_download.clear()
+        self.areas_box.deselectAllOptions()
+        self.updateCountText()
+        
     
     def formatLabels(self, label_string):
         """Server returns a string with items separated by commas. This function
@@ -857,8 +865,8 @@ class GeocubesPlugin:
             self.areas_box = self.dlg.areasBox
             # below are the possible admin area divisions. Adjust if these
             # change. Use the same names as the WFS server
-            admin_area_labels = ['Blocks', 'Valtakunta', 'Aluehallintovirastojako', 
-                                 'Maakuntajako', 'Kuntajako']
+            admin_area_labels = ['Valtakunta', 'Aluehallintovirastojako', 
+                                 'Maakuntajako', 'Kuntajako', 'Blocks']
             self.admin_areas_box.addItems(label for label in admin_area_labels)
             self.admin_areas_box.currentTextChanged.connect(self.setAdminArea)
             self.admin_areas_box.currentTextChanged.connect(self.getAreas)
