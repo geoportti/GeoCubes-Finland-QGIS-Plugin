@@ -21,6 +21,11 @@
     <layout class="QVBoxLayout" name="verticalLayout_3">
      <item>
       <widget class="QTabWidget" name="tabWidget">
+       <property name="font">
+        <font>
+         <family>Arial</family>
+        </font>
+       </property>
        <property name="currentIndex">
         <number>0</number>
        </property>
@@ -32,7 +37,7 @@
          <string/>
         </property>
         <attribute name="title">
-         <string>Layer selection</string>
+         <string>Layer Selection</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_5">
          <item>
@@ -47,23 +52,20 @@
              </property>
              <property name="font">
               <font>
+               <family>Arial</family>
                <pointsize>9</pointsize>
                <weight>75</weight>
                <bold>true</bold>
               </font>
              </property>
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
              <property name="text">
               <string>Select layers to download</string>
              </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="urlBaseField">
-             <property name="toolTip">
-              <string>Edit to change the base url for the data</string>
-             </property>
-             <property name="whatsThis">
-              <string/>
+             <property name="textFormat">
+              <enum>Qt::PlainText</enum>
              </property>
             </widget>
            </item>
@@ -74,6 +76,11 @@
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="font">
+              <font>
+               <family>Arial</family>
+              </font>
              </property>
              <property name="toolTip">
               <string>Gets all available raster layers from the server and lists them below</string>
@@ -117,7 +124,7 @@
          <string/>
         </property>
         <attribute name="title">
-         <string>Extent and resolution</string>
+         <string>Extent and Resolution</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_4">
          <item>
@@ -161,9 +168,14 @@
              </property>
              <property name="maximumSize">
               <size>
-               <width>500</width>
+               <width>550</width>
                <height>16777215</height>
               </size>
+             </property>
+             <property name="font">
+              <font>
+               <family>Arial</family>
+              </font>
              </property>
              <property name="collapsed">
               <bool>false</bool>
@@ -175,6 +187,9 @@
            </item>
            <item>
             <layout class="QFormLayout" name="formLayout">
+             <property name="labelAlignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             </property>
              <item row="1" column="1">
               <spacer name="verticalSpacer">
                <property name="orientation">
@@ -241,6 +256,9 @@
              </item>
              <item row="9" column="0">
               <widget class="QLabel" name="label_2">
+               <property name="layoutDirection">
+                <enum>Qt::LeftToRight</enum>
+               </property>
                <property name="text">
                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Resolution (m): &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                </property>
@@ -249,14 +267,14 @@
              <item row="9" column="1">
               <widget class="QComboBox" name="resolutionBox">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>300</width>
+                 <width>16777215</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -281,6 +299,9 @@
                  <width>130</width>
                  <height>0</height>
                 </size>
+               </property>
+               <property name="layoutDirection">
+                <enum>Qt::LeftToRight</enum>
                </property>
               </widget>
              </item>
@@ -320,7 +341,7 @@
                 <string>Click on the areas that are wanted, the select &quot;Return selected&quot;</string>
                </property>
                <property name="text">
-                <string>Select from map</string>
+                <string>Select From Map</string>
                </property>
               </widget>
              </item>
@@ -353,6 +374,11 @@
          <height>30</height>
         </size>
        </property>
+       <property name="font">
+        <font>
+         <family>Arial</family>
+        </font>
+       </property>
        <property name="text">
         <string>TextLabel</string>
        </property>
@@ -384,6 +410,11 @@
           <layout class="QVBoxLayout" name="verticalLayout_7">
            <item>
             <widget class="QRadioButton" name="saveToTempButton">
+             <property name="font">
+              <font>
+               <family>Arial</family>
+              </font>
+             </property>
              <property name="toolTip">
               <string>Adds the data to QGIS as layers. To save layers locally, select &quot;Export&quot; and &quot;Save as...&quot;</string>
              </property>
@@ -394,6 +425,11 @@
            </item>
            <item>
             <widget class="QRadioButton" name="saveToDiskButton">
+             <property name="font">
+              <font>
+               <family>Arial</family>
+              </font>
+             </property>
              <property name="text">
               <string>Save layer(s) to disk</string>
              </property>
@@ -419,6 +455,11 @@
                <height>0</height>
               </size>
              </property>
+             <property name="font">
+              <font>
+               <family>Arial</family>
+              </font>
+             </property>
              <property name="toolTip">
               <string>Get data as an image in Geotiff format</string>
              </property>
@@ -429,6 +470,11 @@
            </item>
            <item>
             <widget class="QRadioButton" name="vrtRadioButton">
+             <property name="font">
+              <font>
+               <family>Arial</family>
+              </font>
+             </property>
              <property name="toolTip">
               <string>Get the data as a virtual multiresolution raster</string>
              </property>
@@ -457,12 +503,13 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>100</width>
+          <width>120</width>
           <height>60</height>
          </size>
         </property>
         <property name="font">
          <font>
+          <family>Arial</family>
           <pointsize>9</pointsize>
           <weight>50</weight>
           <bold>false</bold>
@@ -471,8 +518,11 @@
         <property name="toolTip">
          <string>Select all necessary parameters, the press here to get the data</string>
         </property>
+        <property name="layoutDirection">
+         <enum>Qt::RightToLeft</enum>
+        </property>
         <property name="text">
-         <string>Get data</string>
+         <string>Get Data</string>
         </property>
        </widget>
        <widget class="QPushButton" name="closeButton">
@@ -493,6 +543,11 @@
      </item>
      <item>
       <widget class="QLabel" name="dataInfoText">
+       <property name="font">
+        <font>
+         <family>Arial</family>
+        </font>
+       </property>
        <property name="text">
         <string>Get datasets here</string>
        </property>

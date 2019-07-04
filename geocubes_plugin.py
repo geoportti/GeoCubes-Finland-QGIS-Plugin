@@ -22,12 +22,12 @@
  ***************************************************************************/
 """
 from PyQt5.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, 
-                          Qt)
+                          Qt, QUrl)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
-                             QSizePolicy)
+                             QSizePolicy, QFileDialog)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
-                       QgsMessageLog, Qgis, QgsVectorLayer)
+                       QgsMessageLog, Qgis, QgsVectorLayer, QgsFileDownloader)
 from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
 
 # Initialize Qt resources from file resources.py
@@ -246,10 +246,8 @@ class GeocubesPlugin:
             return
         else:
             # decode from bytes to string
-            response_string = response.content.decode("utf-8")
-            # datasets are divided by semicolons: split at semicolons
-            dataset_list = response_string.split(';')
-            return dataset_list
+            dataset_string = response.content.decode("utf-8")
+            return dataset_string
     
     def getLabels(self, name):
         """Requests label values for a specific layer and return that csv string"""
@@ -303,11 +301,14 @@ class GeocubesPlugin:
         except Exception: pass
 
         # get a list of datasets
-        datasets = self.getDatasets()
+        dataset_string = self.getDatasets()
         
         # if capabilities query failed, don't run code below
-        if not datasets:
+        if not dataset_string:
             return
+        
+        # datasets are divided by semicolons: split at semicolons
+        datasets = dataset_string.split(';')
 
         self.table.setColumnCount(4)
         # start with only 1 row, add more as needed
@@ -330,6 +331,8 @@ class GeocubesPlugin:
             years = dataset_split[2]
             # maxres = maximum resolution of the dataset in meters
             maxres = dataset_split[5]
+            
+            bit_depth = dataset_split[6]
 
             # years are separated by periods
             years_split = years.split('.')
@@ -362,7 +365,7 @@ class GeocubesPlugin:
                 necessary for the queries. Key is stored as a string and 
                 value as a tuple"""
                 key = label + ";" + year
-                value = (name, year)
+                value = (name, bit_depth, year)
                 
                 self.datasets_all[key] = value
                 
@@ -399,8 +402,6 @@ class GeocubesPlugin:
     def updateDataText(self, msg):
         self.data_info_text.setText(msg)
         
-    def updateBaseUrl(self):
-        self.url_base = self.url_base_field.text()
         
             
     def checkboxState(self, cbox):
@@ -532,7 +533,7 @@ class GeocubesPlugin:
             for parameter in dataset_parameters:
                 # accessing values, which are stored as tuples
                 name = parameter[0]
-                year = parameter[1]
+                year = parameter[2]
                     
                 # forming the url that's passed to server. see:
                 # http://86.50.168.160/geocubes/examples/ for examples.
@@ -542,37 +543,77 @@ class GeocubesPlugin:
                 else:
                     data_url = self.formAdminUrl(name, year)
                 
-                # creating raster layer by passing the url and giving
-                # name and year as layer names
-                raster_layer = QgsRasterLayer(data_url, ''.join([name, '_', year]))
+                if self.save_disk_button.isChecked():
+                    if self.gtiff_radio_button.isChecked():
+                        file_format = 'tif'
+                    else:
+                        file_format = 'vrt'
+                    self.saveData(data_url, file_format)
                     
-                # if data query fails, inform user. If not, add to Qgis
-                if not raster_layer.isValid():
-                    self.sendWarning("Layer invalid", ''.join([name,'_',year])+
-                                     " failed to download", 9)
                 else:
-                    """If raster layer renderer is of type QgsPalettedRasterRenderer,
-                        it's most likely categorized data that has labels.
-                        These labels are first queried, then formatted and
-                        lastly inserted to the layer. Otherwise the step is skipped"""
-
-                    if raster_layer.renderer().type() == 'paletted':
-                        label_string = self.getLabels(name)
-                        if label_string:
-                            label_list = self.formatLabels(label_string)
-                            self.insertLabels(label_list, raster_layer.renderer())
+                    self.addLayerToQgis(data_url, name=name, year=year)
                     
-                    # insert raster layer to main canvas and Qgis legend for use
-                    QgsProject.instance().addMapLayer(raster_layer)
-                    successful_layers += 1
-                
+
+            """
             # once all layers are downloaded, inform how many were succesful
             self.updateDataText(str(successful_layers) + "/" +
                                 str(len(dataset_parameters))+ " layer(s)" +
                                 " successfully downloaded")
-            self.clearSelections()
+            """
+            #self.clearSelections()
             self.busy_dialog.close()
             
+    def addLayerToQgis(self, url, name="geocubes_raster_layer", year=""):
+        # creating raster layer by passing the url and giving
+        # name and year as layer names
+        raster_layer = QgsRasterLayer(url, ''.join([name, '_', year]))
+                    
+        # if data query fails, inform user. If not, add to Qgis
+        if not raster_layer.isValid():
+            self.sendWarning("Layer invalid", ''.join([name,'_',year])+
+                                     " failed to download", 9)
+            return False
+        else:
+            """If raster layer renderer is of type QgsPalettedRasterRenderer,
+            it's most likely categorized data that has labels.
+            These labels are first queried, then formatted and
+            lastly inserted to the layer. Otherwise the step is skipped"""
+
+            if raster_layer.renderer().type() == 'paletted':
+                label_string = self.getLabels(name)
+                if label_string:
+                    label_list = self.formatLabels(label_string)
+                    self.insertLabels(label_list, raster_layer.renderer())
+                    
+            # insert raster layer to main canvas and Qgis legend for use
+            QgsProject.instance().addMapLayer(raster_layer)
+            return True
+    
+    def downloadFailed(self, error):
+        self.sendWarning("Download failed", "Error: " + str(error), 10)
+        
+    def downloadSucceeded(self):
+        self.addLayerToQgis(self.file_name)
+            
+    def saveData(self, url, file_format):
+        self.file_name, file_filter = QFileDialog.getSaveFileName(self.dlg,
+                                "Save the layer", filter='Selected format: (*'+file_format+')')
+        qt_url = QUrl(url)
+        
+        #self.dl_state = False
+        
+        #print(qt_url)
+        #print(self.file_name)
+
+        downloader = QgsFileDownloader(qt_url, self.file_name)
+        
+        downloader.downloadError.connect(self.downloadFailed)
+        
+        downloader.downloadCompleted.connect(self.downloadSucceeded)
+        
+        downloader.startDownload()
+        
+        
     def clearSelections(self):
         self.table.clear()
         self.datasets_to_download.clear()
@@ -723,12 +764,6 @@ class GeocubesPlugin:
     def areaBoxSelection(self):
         """Returns current selection in the 'Areas' drop box as a list"""
         return self.areas_box.checkedItems()
-        
-    def collapseExtentBox(self):
-        self.extent_box.setCollapsed(True)
-        
-    def uncollapseExtentBox(self):
-        self.extent_box.setCollapsed(False)
     
     def updateExtent(self):
         """Updates extent boxes when the canvas extent changes"""
@@ -797,9 +832,6 @@ class GeocubesPlugin:
             # the ui
             self.dlg = GeocubesPluginDialog()
             
-            self.url_base_field = self.dlg.urlBaseField
-            self.url_base_field.textEdited.connect(self.updateBaseUrl)
-            
             # table to house the datasets: also add policies to fit the data
             # better on the table
             self.table = self.dlg.tableWidget
@@ -814,7 +846,6 @@ class GeocubesPlugin:
             self.canvas = self.iface.mapCanvas()
             self.canvas.extentsChanged.connect(self.updateExtent)
 
-            
             # initialising the extent box
             # all the data is in ETRS89 / TM35FIN (EPSG:3067), 
             # therefore that's the default crs
@@ -848,14 +879,11 @@ class GeocubesPlugin:
             # radio buttons for user to decide whether to get the data as
             # temporary layers or save the rasters to disc
             self.save_temp_button = self.dlg.saveToTempButton
+            self.save_disk_button = self.dlg.saveToDiskButton
             
             # radio buttons to decide what to use when cropping the data
             self.bbox_radio_button = self.dlg.bboxRadioButton
             self.admin_radio_button = self.dlg.adminRadioButton
-            
-            # show or hide the extent box based on which one is selected
-            self.bbox_radio_button.clicked.connect(self.uncollapseExtentBox)
-            self.admin_radio_button.clicked.connect(self.collapseExtentBox)
             
             self.gtiff_radio_button = self.dlg.gtiffRadioButton
             self.vrt_radio_button = self.dlg.vrtRadioButton
@@ -884,6 +912,11 @@ class GeocubesPlugin:
             
             self.map_canvas = MapWindow()
             self.map_canvas.finished.connect(self.mapSelectionToBox)
+            # an empty dictionary to house all the fetched datasets
+            self.datasets_all = {}
+        
+            # an empty list for only the datasets the user has selected
+            self.datasets_to_download = []
             
         """Code below is ran every time the plugin is restarted but Qgis isn't"""
         
@@ -904,11 +937,7 @@ class GeocubesPlugin:
         self.admin_areas_box.setCurrentIndex(-1)
         self.admin_area = self.admin_areas_box.currentText()
         
-        # an empty dictionary to house all the fetched datasets
-        self.datasets_all = {}
-        
-        # an empty list for only the datasets the user has selected
-        self.datasets_to_download = []
+
         
         if self.canvas.mapSettings().destinationCrs() != self.proj_crs:
             self.canvas.setDestinationCrs(self.proj_crs)
@@ -939,16 +968,12 @@ class GeocubesPlugin:
         self.gtiff_radio_button.setChecked(True)
         
         # make sure the table is empty on restart
-        self.table.clear()
+        #self.table.clear()
         
         self.areas_box.clear()
         
-        self.url_base_field.setText(self.url_base)
-        
         # show the dialog
         self.dlg.show()
-        
-        self.uncollapseExtentBox()
 
 """
         MITEN SAADA RASTERITASO TALLENNETTUA:
