@@ -22,7 +22,7 @@
  ***************************************************************************/
 """
 from PyQt5.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, 
-                          Qt, QUrl)
+                          Qt, QUrl, QEventLoop)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
                              QSizePolicy, QFileDialog)
@@ -402,8 +402,6 @@ class GeocubesPlugin:
     def updateDataText(self, msg):
         self.data_info_text.setText(msg)
         
-        
-            
     def checkboxState(self, cbox):
         """itemChanged signal passes the checkbox (cbox). This function
            checks whether cbox was checked or unchecked and acts accordingly"""
@@ -526,7 +524,7 @@ class GeocubesPlugin:
             self.busy_dialog.show()
             
             # a simple count of succesful downloads
-            successful_layers = 0
+            self.successful_layers = 0
         
             self.busy_dialog.show()
             # 1 to n loops to download all selected data
@@ -548,22 +546,27 @@ class GeocubesPlugin:
                         file_format = 'tif'
                     else:
                         file_format = 'vrt'
-                    self.saveData(data_url, file_format)
+                    self.saveData(data_url, file_format, name)
                     
                 else:
                     self.addLayerToQgis(data_url, name=name, year=year)
                     
 
-            """
+
             # once all layers are downloaded, inform how many were succesful
-            self.updateDataText(str(successful_layers) + "/" +
+            self.updateDataText(str(self.successful_layers) + "/" +
                                 str(len(dataset_parameters))+ " layer(s)" +
                                 " successfully downloaded")
-            """
+
             #self.clearSelections()
             self.busy_dialog.close()
             
     def addLayerToQgis(self, url, name="geocubes_raster_layer", year=""):
+        """This function receives an url address to access the files at the
+            Geocubes servers. It creates a raster layer based on that url, 
+            gives it a label and add the layer to QGIS. If the data is
+            categorized (say, Corine), then those categories are labeled."""
+            
         # creating raster layer by passing the url and giving
         # name and year as layer names
         raster_layer = QgsRasterLayer(url, ''.join([name, '_', year]))
@@ -572,7 +575,7 @@ class GeocubesPlugin:
         if not raster_layer.isValid():
             self.sendWarning("Layer invalid", ''.join([name,'_',year])+
                                      " failed to download", 9)
-            return False
+            #return False
         else:
             """If raster layer renderer is of type QgsPalettedRasterRenderer,
             it's most likely categorized data that has labels.
@@ -587,38 +590,55 @@ class GeocubesPlugin:
                     
             # insert raster layer to main canvas and Qgis legend for use
             QgsProject.instance().addMapLayer(raster_layer)
-            return True
+            self.successful_layers += 1
+            #return True
     
     def downloadFailed(self, error):
+        """Run in case the file downloader errors"""
+        self.loop.exit()
         self.sendWarning("Download failed", "Error: " + str(error), 10)
         
-    def downloadSucceeded(self):
-        self.addLayerToQgis(self.file_name)
+    def downloadSucceeded(self, file_name, name):
+        """If the downloader succeeds, the file has now been downloaded on disk
+            It will be added to QGIS as a layer via the file path given by user"""
+        self.loop.exit()
+        self.addLayerToQgis(file_name, name=name)
             
-    def saveData(self, url, file_format):
-        self.file_name, file_filter = QFileDialog.getSaveFileName(self.dlg,
-                                "Save the layer", filter='Selected format: (*'+file_format+')')
+    def saveData(self, url, file_format, name):
+        """This function first asks the user for a file name, then downloads
+            the raster file from the server using the url from getData and
+            saves it as the defined file name."""
+        self.loop = QEventLoop()
+        file_name, file_filter = QFileDialog.getSaveFileName(self.dlg,
+                                "Save " + name, filter='Selected format: (*'+file_format+')')
+        if not file_name:
+            self.sendWarning("Filename required", "Please write filenames", 10)
+            return
+        
+        split = file_name.split('.')
+        if len(split) == 1:
+            file_name = file_name + '.' + file_format
+        
+        # downloader requires url as QUrl
         qt_url = QUrl(url)
         
-        #self.dl_state = False
+        # this handles the download and then destructs
+        downloader = QgsFileDownloader(qt_url, file_name)
         
-        #print(qt_url)
-        #print(self.file_name)
-
-        downloader = QgsFileDownloader(qt_url, self.file_name)
-        
+        # signals for both fail and success
         downloader.downloadError.connect(self.downloadFailed)
-        
-        downloader.downloadCompleted.connect(self.downloadSucceeded)
+        downloader.downloadCompleted.connect(lambda: self.downloadSucceeded(file_name, name))
         
         downloader.startDownload()
         
+        self.loop.exec_()
         
     def clearSelections(self):
         self.table.clear()
         self.datasets_to_download.clear()
         self.areas_box.deselectAllOptions()
         self.updateCountText()
+        
         
     
     def formatLabels(self, label_string):
@@ -656,6 +676,7 @@ class GeocubesPlugin:
         for label in labels:
             index = int(label[0])
             name = label[1]
+
             
             renderer.setLabel(index, name)
                             
@@ -755,6 +776,7 @@ class GeocubesPlugin:
                 key = name_fi + "|" + str(id_code)
             
             name_list.append(key)
+                
         
         name_list.sort()
         # add all area strings to the box
