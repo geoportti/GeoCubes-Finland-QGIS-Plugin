@@ -25,9 +25,9 @@ from PyQt5.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication,
                           Qt, QUrl, QEventLoop)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
-                             QSizePolicy, QFileDialog)
+                             QSizePolicy, QFileDialog, QTableWidget, QHeaderView)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
-                       QgsMessageLog, Qgis, QgsVectorLayer, QgsFileDownloader)
+                       Qgis, QgsVectorLayer, QgsFileDownloader)
 from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
 
 # Initialize Qt resources from file resources.py
@@ -36,6 +36,7 @@ from .resources import *
 from .geocubes_plugin_dialog import GeocubesPluginDialog
 import os.path, requests, re
 from .MapWindow import MapWindow
+from .PolygonMapWindow import PolygonMapWindow
 
 
 class GeocubesPlugin:
@@ -342,12 +343,8 @@ class GeocubesPlugin:
             for year in years_split:
                 # the strings must be transformed to Qt Items
                 label_entry = QTableWidgetItem(label)
-                # the items must NOT be selectable or otherwise modifiable
-                label_entry.setFlags(Qt.NoItemFlags)
                 maxres_entry = QTableWidgetItem(maxres)
-                maxres_entry.setFlags(Qt.NoItemFlags)
                 year_entry = QTableWidgetItem(year)
-                year_entry.setFlags(Qt.NoItemFlags)
                 
                 # create a checkbox for each row
                 checkbox_entry = QTableWidgetItem()
@@ -513,9 +510,10 @@ class GeocubesPlugin:
             self.sendWarning("Missing data", "Please select resolution!", 8)
         elif self.admin_radio_button.isChecked() and len(self.areas_box.checkedItems()) == 0:
             self.sendWarning("Missing selection","Please select admin areas!", 8)
-        elif not self.admin_radio_button.isChecked() and not self.bbox_radio_button.isChecked():
-            self.sendWarning("Crop method missing","Please select either bbox "+
-                                 "or admin area method", 8)
+        elif (not self.admin_radio_button.isChecked() and not self.bbox_radio_button.isChecked() 
+        and not self.poly_radio_button.isChecked()):
+            self.sendWarning("Crop method missing","Please select one of the "+
+                                 "three crop methods", 8)
         else:
             # get info that's passed to the Geocubes server
             dataset_parameters = self.getValues()
@@ -535,9 +533,11 @@ class GeocubesPlugin:
                     
                 # forming the url that's passed to server. see:
                 # http://86.50.168.160/geocubes/examples/ for examples.
-                # Url uses either bbox or admin areas based on user choice
+                # Url uses either bbox, polygon or admin areas based on user choice
                 if self.bbox_radio_button.isChecked():
                     data_url = self.formBboxUrl(name, year)
+                elif self.poly_radio_button.isChecked():
+                    data_url = self.formPolygonUrl(name, year)
                 else:
                     data_url = self.formAdminUrl(name, year)
                 
@@ -558,8 +558,10 @@ class GeocubesPlugin:
                                 str(len(dataset_parameters))+ " layer(s)" +
                                 " successfully downloaded")
 
-            #self.clearSelections()
+
             self.busy_dialog.close()
+            self.table.clearSelection()
+            self.updateCountText()
             
     def addLayerToQgis(self, url, name="geocubes_raster_layer", year=""):
         """This function receives an url address to access the files at the
@@ -632,14 +634,13 @@ class GeocubesPlugin:
         downloader.startDownload()
         
         self.loop.exec_()
-        
+    """
     def clearSelections(self):
         self.table.clear()
         self.datasets_to_download.clear()
         self.areas_box.deselectAllOptions()
         self.updateCountText()
-        
-        
+    """
     
     def formatLabels(self, label_string):
         """Server returns a string with items separated by commas. This function
@@ -700,6 +701,12 @@ class GeocubesPlugin:
         if self.vrt_radio_button.isChecked():
             admin_url = admin_url+"/vrt/mr"
         return admin_url
+    
+    def formPolygonUrl(self, name, year):
+        poly_url = (self.url_base + "/clip/" + self.resolution +
+                    "/"+ name +"/polygon:" + self.formatPolygon()
+                    + "/" + year)
+        return poly_url
             
     def getAreas(self):
         """Fetches a vector data of administrative divisions from Geocubes WFS 
@@ -747,7 +754,12 @@ class GeocubesPlugin:
             else:
                 self.map_canvas.addLayer(scrap_vlayer)
 
-            
+    def openPolyMapWindow(self):
+        self.poly_map_canvas.showCanvas()
+        
+    def getMapPolygon(self):
+        self.polygon_list = self.poly_map_canvas.getPolygon()
+        
     def mapSelectionToBox(self):
         """Activated when map canvas emits 'finished' signal. Gets a list of
             items selected by the user and checks these on the areas box"""
@@ -777,7 +789,6 @@ class GeocubesPlugin:
             
             name_list.append(key)
                 
-        
         name_list.sort()
         # add all area strings to the box
         self.areas_box.addItems(name for name in name_list)
@@ -803,6 +814,17 @@ class GeocubesPlugin:
                                  'geocubes_plugin',
                                  Qgis.Info)
         """
+    def formatPolygon(self):
+        polygon_str = ""
+        for point in self.polygon_list:
+            if not polygon_str:
+                point_str = str(point[0])+","+str(point[1])
+                polygon_str = point_str
+            else:
+                point_str =","+str(point[0])+","+str(point[1])
+                polygon_str = polygon_str + point_str
+        
+        return polygon_str
         
     def formatExtent(self,rectangle):
         """The extent coordinates need to be in certain format for the url
@@ -842,6 +864,9 @@ class GeocubesPlugin:
                     codes = codes + "," + code
             return codes
         
+    def clearTableSelections(self):
+        self.table.clearSelection()
+        
     def run(self):
         """Run method that performs all the real work"""
 
@@ -857,8 +882,18 @@ class GeocubesPlugin:
             # table to house the datasets: also add policies to fit the data
             # better on the table
             self.table = self.dlg.tableWidget
+            """
             self.table.setSizeAdjustPolicy(
                     QAbstractScrollArea.AdjustToContents)
+            """
+            self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+            self.table.horizontalHeader().setStretchLastSection(True) 
+            
+            #ensures entries in the table cannot be edited
+            self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+            
+            #self.clear_selection = self.dlg.clearSelectionButton
+            #self.clear_selection.clicked.connect(self.clearTableSelections)
             
             # connect click of the fetch data layers button to functions
             self.dlg.getContents.clicked.connect(self.setToTable)
@@ -891,6 +926,9 @@ class GeocubesPlugin:
             self.map_select_button = self.dlg.mapSelectButton
             self.map_select_button.clicked.connect(self.openMapWindow)
             
+            self.poly_draw_button = self.dlg.polyDrawButton
+            self.poly_draw_button.clicked.connect(self.openPolyMapWindow)
+            
             # text that tells the user the current count of selected layers
             self.layer_count_text = self.dlg.layerCountText
             
@@ -906,6 +944,7 @@ class GeocubesPlugin:
             # radio buttons to decide what to use when cropping the data
             self.bbox_radio_button = self.dlg.bboxRadioButton
             self.admin_radio_button = self.dlg.adminRadioButton
+            self.poly_radio_button = self.dlg.polyRadioButton
             
             self.gtiff_radio_button = self.dlg.gtiffRadioButton
             self.vrt_radio_button = self.dlg.vrtRadioButton
@@ -921,7 +960,7 @@ class GeocubesPlugin:
             self.admin_areas_box.currentTextChanged.connect(self.setAdminArea)
             self.admin_areas_box.currentTextChanged.connect(self.getAreas)
             
-            self.busy_dialog = QgsBusyIndicatorDialog("Fetching data...", self.dlg)
+            self.busy_dialog = QgsBusyIndicatorDialog("Processing... Please wait", self.dlg)
             
             # initiate message bar that warns user when something goes wrong
             self.msg_bar = QgsMessageBar(self.dlg.tabWidget)
@@ -934,6 +973,10 @@ class GeocubesPlugin:
             
             self.map_canvas = MapWindow()
             self.map_canvas.finished.connect(self.mapSelectionToBox)
+            
+            self.poly_map_canvas = PolygonMapWindow()
+            self.poly_map_canvas.finished.connect(self.getMapPolygon)
+            
             # an empty dictionary to house all the fetched datasets
             self.datasets_all = {}
         
@@ -958,8 +1001,6 @@ class GeocubesPlugin:
         
         self.admin_areas_box.setCurrentIndex(-1)
         self.admin_area = self.admin_areas_box.currentText()
-        
-
         
         if self.canvas.mapSettings().destinationCrs() != self.proj_crs:
             self.canvas.setDestinationCrs(self.proj_crs)
@@ -989,21 +1030,7 @@ class GeocubesPlugin:
         
         self.gtiff_radio_button.setChecked(True)
         
-        # make sure the table is empty on restart
-        #self.table.clear()
-        
         self.areas_box.clear()
         
         # show the dialog
         self.dlg.show()
-
-"""
-        MITEN SAADA RASTERITASO TALLENNETTUA:
-        >provider = rlayer.dataProvider()
-        >(provider.dataType(1))
-         >https://qgis.org/api/classQgis.html
-        >https://qgis.org/api/classQgsRasterFileWriter.html#a660aecebe6791d543b8c568edf0084f0
-        >writeRaster:
-            >https://qgis.org/api/classQgsRasterFileWriter.html#a660aecebe6791d543b8c568edf0084f0
-
-"""

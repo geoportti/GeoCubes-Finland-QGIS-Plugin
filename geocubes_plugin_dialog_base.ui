@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>594</width>
-    <height>734</height>
+    <width>592</width>
+    <height>773</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -89,7 +89,7 @@
               <string/>
              </property>
              <property name="text">
-              <string>Fetch data layers</string>
+              <string>Fetch Data Layers</string>
              </property>
              <property name="checkable">
               <bool>false</bool>
@@ -203,86 +203,40 @@
                </property>
               </spacer>
              </item>
-             <item row="4" column="1">
-              <widget class="QgsCheckableComboBox" name="areasBox">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>300</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>16777215</height>
-                </size>
-               </property>
+             <item row="2" column="0">
+              <widget class="QRadioButton" name="adminRadioButton">
                <property name="toolTip">
-                <string>Select areas by scrolling and clicking or write the first few letters of their name.</string>
-               </property>
-              </widget>
-             </item>
-             <item row="6" column="1">
-              <spacer name="verticalSpacer_2">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="7" column="1">
-              <spacer name="verticalSpacer_3">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="9" column="0">
-              <widget class="QLabel" name="label_2">
-               <property name="layoutDirection">
-                <enum>Qt::LeftToRight</enum>
+                <string>Use admin areas to crop the data along their borders. Division range from municipal to whole nation.</string>
                </property>
                <property name="text">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Resolution (m): &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>Crop data with admin areas</string>
                </property>
               </widget>
              </item>
-             <item row="9" column="1">
-              <widget class="QComboBox" name="resolutionBox">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
+             <item row="2" column="1">
+              <spacer name="horizontalSpacer">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
                </property>
-               <property name="maximumSize">
+               <property name="sizeHint" stdset="0">
                 <size>
-                 <width>16777215</width>
-                 <height>16777215</height>
+                 <width>40</width>
+                 <height>20</height>
                 </size>
                </property>
-               <property name="toolTip">
-                <string>Resolution of all datasets to be downloaded. If multiresolution VRT is seleted, this is the minimum resolution of the data.</string>
+              </spacer>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_3">
+               <property name="text">
+                <string>Administrative division:</string>
                </property>
-               <property name="currentText">
-                <string/>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Select areas to crop by:</string>
                </property>
               </widget>
              </item>
@@ -305,32 +259,39 @@
                </property>
               </widget>
              </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_3">
-               <property name="text">
-                <string>Administrative division:</string>
+             <item row="4" column="1">
+              <widget class="QgsCheckableComboBox" name="areasBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
                </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="QLabel" name="label_4">
-               <property name="text">
-                <string>Select areas to crop by:</string>
+               <property name="minimumSize">
+                <size>
+                 <width>250</width>
+                 <height>0</height>
+                </size>
                </property>
-              </widget>
-             </item>
-             <item row="2" column="0">
-              <widget class="QRadioButton" name="adminRadioButton">
+               <property name="maximumSize">
+                <size>
+                 <width>300</width>
+                 <height>16777215</height>
+                </size>
+               </property>
                <property name="toolTip">
-                <string>Use admin areas to crop the data along their borders. Division range from municipal to whole nation.</string>
-               </property>
-               <property name="text">
-                <string>Crop data with admin areas</string>
+                <string>Select areas by scrolling and clicking or write the first few letters of their name.</string>
                </property>
               </widget>
              </item>
              <item row="5" column="1">
               <widget class="QPushButton" name="mapSelectButton">
+               <property name="minimumSize">
+                <size>
+                 <width>200</width>
+                 <height>0</height>
+                </size>
+               </property>
                <property name="maximumSize">
                 <size>
                  <width>300</width>
@@ -345,18 +306,95 @@
                </property>
               </widget>
              </item>
-             <item row="2" column="1">
-              <spacer name="horizontalSpacer">
+             <item row="6" column="1">
+              <spacer name="verticalSpacer_2">
                <property name="orientation">
-                <enum>Qt::Horizontal</enum>
+                <enum>Qt::Vertical</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
-                 <width>40</width>
-                 <height>20</height>
+                 <width>20</width>
+                 <height>40</height>
                 </size>
                </property>
               </spacer>
+             </item>
+             <item row="8" column="1">
+              <spacer name="verticalSpacer_3">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="10" column="0">
+              <widget class="QLabel" name="label_2">
+               <property name="layoutDirection">
+                <enum>Qt::LeftToRight</enum>
+               </property>
+               <property name="text">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Resolution (m): &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
+              </widget>
+             </item>
+             <item row="10" column="1">
+              <widget class="QComboBox" name="resolutionBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>200</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>300</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="toolTip">
+                <string>Resolution of all datasets to be downloaded. If multiresolution VRT is seleted, this is the minimum resolution of the data.</string>
+               </property>
+               <property name="currentText">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="0">
+              <widget class="QRadioButton" name="polyRadioButton">
+               <property name="text">
+                <string>Crop data with a polygon</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="1">
+              <widget class="QPushButton" name="polyDrawButton">
+               <property name="minimumSize">
+                <size>
+                 <width>200</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>300</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Draw Polygon on Map</string>
+               </property>
+              </widget>
              </item>
             </layout>
            </item>
@@ -510,7 +548,6 @@
         <property name="font">
          <font>
           <family>Arial</family>
-          <pointsize>9</pointsize>
           <weight>50</weight>
           <bold>false</bold>
          </font>
@@ -528,7 +565,7 @@
        <widget class="QPushButton" name="closeButton">
         <property name="maximumSize">
          <size>
-          <width>80</width>
+          <width>90</width>
           <height>40</height>
          </size>
         </property>
@@ -536,7 +573,7 @@
          <enum>Qt::RightToLeft</enum>
         </property>
         <property name="text">
-         <string>Close</string>
+         <string>Close Plugin</string>
         </property>
        </widget>
       </widget>
