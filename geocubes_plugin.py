@@ -199,13 +199,13 @@ class GeocubesPlugin:
         """Creates an informative warning on the top of the widget"""
         self.msg_bar.pushMessage(title, text, Qgis.Warning, 
                              duration = duration)
-        
+    """
     def extentResolution(self):
-        """Automatically suggests a resolution for the current map scale.
+        Automatically suggests a resolution for the current map scale.
         Activated when user moves the canvas and updates the resolution box.
         Suggested resolution is reached via this formula:
         https://www.esri.com/arcgis-blog/products/product/imagery/on-map-scale-and-raster-resolution/?rmedium
-        """
+        
         
         # map scale as a double, i.e. 1:563000 -> 563000.000
         map_scale = self.canvas.scale()
@@ -228,7 +228,7 @@ class GeocubesPlugin:
         self.setResolution()
         
         self.updateCountText()
-        
+    """
             
     def getDatasets(self):
         """Sends a query to Geocubes and receives text describing the data.
@@ -758,8 +758,16 @@ class GeocubesPlugin:
         self.poly_map_canvas.showCanvas()
         
     def getMapPolygon(self):
+        #self.polygon_list.clear()
         self.polygon_list = self.poly_map_canvas.getPolygon()
-        
+        if (len(self.polygon_list)<3 or not self.polygon_list[0] ==
+        self.polygon_list[len(self.polygon_list)-1]):
+            self.sendWarning("Invalid polygon", "Please redraw polygon", 8)
+            self.polygon_list.clear()
+            self.poly_checkbox.setChecked(False)
+        else:
+            self.poly_checkbox.setChecked(True)
+            
     def mapSelectionToBox(self):
         """Activated when map canvas emits 'finished' signal. Gets a list of
             items selected by the user and checks these on the areas box"""
@@ -818,10 +826,10 @@ class GeocubesPlugin:
         polygon_str = ""
         for point in self.polygon_list:
             if not polygon_str:
-                point_str = str(point[0])+","+str(point[1])
+                point_str = str(int(point.x()))+","+str(int(point.y()))
                 polygon_str = point_str
             else:
-                point_str =","+str(point[0])+","+str(point[1])
+                point_str =","+str(int(point.x()))+","+str(int(point.y()))
                 polygon_str = polygon_str + point_str
         
         return polygon_str
@@ -908,7 +916,7 @@ class GeocubesPlugin:
             # therefore that's the default crs
             self.extent_box = self.dlg.mExtentGroupBox
             self.proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
-            self.extent_box.extentChanged.connect(self.extentResolution)
+            #self.extent_box.extentChanged.connect(self.extentResolution)
 
             
             # box housing a drop-down list of possible raster resolutions
@@ -964,7 +972,7 @@ class GeocubesPlugin:
             
             # initiate message bar that warns user when something goes wrong
             self.msg_bar = QgsMessageBar(self.dlg.tabWidget)
-            self.msg_bar.setMinimumSize(550, 80)
+            self.msg_bar.setMinimumSize(575, 80)
             self.msg_bar.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
             
             # false to indicate no vector layer is selected: will change, if
@@ -982,6 +990,8 @@ class GeocubesPlugin:
         
             # an empty list for only the datasets the user has selected
             self.datasets_to_download = []
+            
+            self.poly_checkbox = self.dlg.polyCheckbox
             
         """Code below is ran every time the plugin is restarted but Qgis isn't"""
         
@@ -1018,7 +1028,7 @@ class GeocubesPlugin:
         # push current extent to the box
         self.updateExtent()
         
-        self.extentResolution()
+        #self.extentResolution()
         
         # set default texts
         self.updateCountText()

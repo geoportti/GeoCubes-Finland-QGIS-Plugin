@@ -7,10 +7,10 @@ Created on Mon Jul  1 16:15:03 2019
 #from qgis.gui import *
 from qgis.PyQt.QtWidgets import QAction, QMainWindow, QSizePolicy
 from qgis.PyQt.QtCore import Qt, pyqtSignal
-#from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QColor
 from qgis.core import (QgsPalLayerSettings, QgsVectorLayerSimpleLabeling,
                        QgsTextFormat, QgsTextBufferSettings, QgsProject,
-                       QgsVectorLayer)
+                       QgsVectorLayer, QgsGeometry)
 from qgis.gui import (QgsMapCanvas, QgsMapToolPan,
                       QgsMapToolEmitPoint, QgsRubberBand)
 
@@ -141,6 +141,7 @@ class PolygonMapWindow(QMainWindow):
             QgsProject.instance().removeMapLayer(self.bg_layer)
         except Exception:
             pass
+        self.toolDraw
         QMainWindow.closeEvent(self, event)
         
     def getPolygon(self):
@@ -152,12 +153,12 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         self.canvas = canvas
         QgsMapToolEmitPoint.__init__(self, self.canvas)
         self.rubberBand = QgsRubberBand(self.canvas, True)
-        self.rubberBand.setColor(Qt.red)
-        self.rubberBand.setFillColor(Qt.white)
-        self.rubberBand.setWidth(1)
+        self.rubberBand.setColor(QColor(175,238,238))
+        self.rubberBand.setFillColor(QColor(100,255,255,140))
+        self.rubberBand.setWidth(3)
         self.points = []
         self.finished = False
-        self.first_point = False
+        #self.first_point = False
         self.reset()
       
     def reset(self):
@@ -173,12 +174,12 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         if self.finished:
             self.reset()
             self.finished = False
-            return
+            #return
         
         self.click_point = self.toMapCoordinates(e.pos())
 
         self.rubberBand.addPoint(self.click_point, True)
-        self.points.append((int(self.click_point.x()), int(self.click_point.y())))
+        self.points.append(self.click_point)
         self.rubberBand.show()
       
     def canvasDoubleClickEvent(self, e):
@@ -188,8 +189,15 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         if len(self.points)>0:
             first_point = self.points[0]
             self.points.append(first_point)
+        else:
+            self.finished = True
+            return
         self.rubberBand.closePoints()
-        self.finished = True       
+        self.rubberBand.addPoint(self.points[0], True)
+        self.finished = True
+        map_polygon = QgsGeometry.fromPolygonXY([self.points])
+        self.rubberBand.setToGeometry(map_polygon)
         
     def getPoints(self):
+        self.rubberBand.reset(True)
         return self.points

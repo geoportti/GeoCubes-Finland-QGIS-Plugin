@@ -117,9 +117,6 @@
         </layout>
        </widget>
        <widget class="QWidget" name="tab_2">
-        <property name="toolTip">
-         <string>Crop data and select raster resolution here</string>
-        </property>
         <property name="whatsThis">
          <string/>
         </property>
@@ -280,7 +277,7 @@
                 </size>
                </property>
                <property name="toolTip">
-                <string>Select areas by scrolling and clicking or write the first few letters of their name.</string>
+                <string>Select areas by scrolling and clicking or start writing their name. </string>
                </property>
               </widget>
              </item>
@@ -299,7 +296,7 @@
                 </size>
                </property>
                <property name="toolTip">
-                <string>Click on the areas that are wanted, the select &quot;Return selected&quot;</string>
+                <string>Click on the areas that are wanted, then select &quot;Return selected&quot;</string>
                </property>
                <property name="text">
                 <string>Select From Map</string>
@@ -319,7 +316,36 @@
                </property>
               </spacer>
              </item>
-             <item row="8" column="1">
+             <item row="7" column="0">
+              <widget class="QRadioButton" name="polyRadioButton">
+               <property name="text">
+                <string>Crop data with a polygon</string>
+               </property>
+              </widget>
+             </item>
+             <item row="7" column="1">
+              <widget class="QPushButton" name="polyDrawButton">
+               <property name="minimumSize">
+                <size>
+                 <width>200</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>300</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="statusTip">
+                <string>Open a map window to draw a polygon on. Hint: doubleclick to connect the polygon.</string>
+               </property>
+               <property name="text">
+                <string>Draw Polygon on Map</string>
+               </property>
+              </widget>
+             </item>
+             <item row="9" column="1">
               <spacer name="verticalSpacer_3">
                <property name="orientation">
                 <enum>Qt::Vertical</enum>
@@ -332,7 +358,7 @@
                </property>
               </spacer>
              </item>
-             <item row="10" column="0">
+             <item row="11" column="0">
               <widget class="QLabel" name="label_2">
                <property name="layoutDirection">
                 <enum>Qt::LeftToRight</enum>
@@ -342,7 +368,7 @@
                </property>
               </widget>
              </item>
-             <item row="10" column="1">
+             <item row="11" column="1">
               <widget class="QComboBox" name="resolutionBox">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -370,29 +396,19 @@
                </property>
               </widget>
              </item>
-             <item row="7" column="0">
-              <widget class="QRadioButton" name="polyRadioButton">
-               <property name="text">
-                <string>Crop data with a polygon</string>
+             <item row="8" column="1">
+              <widget class="QCheckBox" name="polyCheckbox">
+               <property name="enabled">
+                <bool>false</bool>
                </property>
-              </widget>
-             </item>
-             <item row="7" column="1">
-              <widget class="QPushButton" name="polyDrawButton">
-               <property name="minimumSize">
-                <size>
-                 <width>200</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>300</width>
-                 <height>16777215</height>
-                </size>
+               <property name="statusTip">
+                <string>Checked if the polygon can be used to crop data.</string>
                </property>
                <property name="text">
-                <string>Draw Polygon on Map</string>
+                <string>Valid polygon</string>
+               </property>
+               <property name="checkable">
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -467,6 +483,9 @@
               <font>
                <family>Arial</family>
               </font>
+             </property>
+             <property name="toolTip">
+              <string>Save layers locally. Will add the layers to QGIS after saving.</string>
              </property>
              <property name="text">
               <string>Save layer(s) to disk</string>
@@ -553,7 +572,7 @@
          </font>
         </property>
         <property name="toolTip">
-         <string>Select all necessary parameters, the press here to get the data</string>
+         <string>Select all necessary parameters, then press here to get the data</string>
         </property>
         <property name="layoutDirection">
          <enum>Qt::RightToLeft</enum>
