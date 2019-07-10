@@ -388,7 +388,10 @@ class GeocubesPlugin:
         
     def updateCountText(self):
         """Activated when checkbox states change. Updates the count accordingly"""
-        res_text = "Resolution set to " + self.resolution + " m"
+        if not self.resolution:
+            res_text = "No resolution selected"
+        else:
+            res_text = "Resolution set to " + self.resolution + " m"
         if len(self.datasets_to_download) == 1:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
                                           ' layer selected | ' + res_text)
@@ -457,7 +460,7 @@ class GeocubesPlugin:
         -radiometric resolution (aka bit depth or data type in QGIS): 8, 16, 32 bits
             As of now, the radiometric resolution is hardcoded to be 16.
         Warns users of too large files (set to 50 MB atm)"""
-        if self.admin_radio_button.isChecked():
+        if not self.bbox_radio_button.isChecked():
             return
         
         ext = self.getExtent()

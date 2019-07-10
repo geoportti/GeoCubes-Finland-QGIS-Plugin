@@ -64,8 +64,9 @@ class PolygonMapWindow(QMainWindow):
         # creating each desired action
         self.actionGet = QAction("Return polygon and close", self)
         self.actionPan = QAction("Pan tool", self)
-        self.actionDraw = QAction("Polygon draw tool", self)
-        self.actionClear = QAction("Clear polygon", self)
+        self.actionDraw = QAction("Polygon tool", self)
+        self.actionConnect = QAction("Connect polygon", self)
+        self.actionClear = QAction("Clear", self)
         self.actionCancel = QAction("Cancel and close", self)
         
         # these two function as on/off. the rest are clickable
@@ -77,6 +78,7 @@ class PolygonMapWindow(QMainWindow):
         self.actionDraw.triggered.connect(self.draw)
         self.actionClear.triggered.connect(self.clear)
         self.actionGet.triggered.connect(self.finishedSelection)
+        self.actionConnect.triggered.connect(self.connect)
         self.actionCancel.triggered.connect(self.cancel)
         
         # toolbar at the top of the screen: houses actions as buttons
@@ -87,6 +89,7 @@ class PolygonMapWindow(QMainWindow):
         self.toolbar.addAction(self.actionGet)
         self.toolbar.addAction(self.actionPan)
         self.toolbar.addAction(self.actionDraw)
+        self.toolbar.addAction(self.actionConnect)
         self.toolbar.addAction(self.actionClear)
         self.toolbar.addAction(self.actionCancel)
 
@@ -108,6 +111,9 @@ class PolygonMapWindow(QMainWindow):
         
     def clear(self):
         self.toolDraw.reset()
+    
+    def connect(self):
+        self.toolDraw.finishPolygon()
         
     def finishedSelection(self):
         """Activated when user clicks 'returns selection'. Closes window
@@ -141,7 +147,7 @@ class PolygonMapWindow(QMainWindow):
             QgsProject.instance().removeMapLayer(self.bg_layer)
         except Exception:
             pass
-        self.toolDraw
+        self.toolDraw.finishPolygon()
         QMainWindow.closeEvent(self, event)
         
     def getPolygon(self):
@@ -158,12 +164,9 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         self.rubberBand.setWidth(3)
         self.points = []
         self.finished = False
-        #self.first_point = False
         self.reset()
       
     def reset(self):
-        #self.startPoint = self.endPoint = None
-        #self.isEmittingPoint = False
         self.rubberBand.reset(True)
         self.points.clear()
 
@@ -174,7 +177,6 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         if self.finished:
             self.reset()
             self.finished = False
-            #return
         
         self.click_point = self.toMapCoordinates(e.pos())
 
@@ -186,7 +188,9 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         self.finishPolygon()
         
     def finishPolygon(self):
-        if len(self.points)>0:
+        if self.finished:
+            return
+        if len(self.points)>2:
             first_point = self.points[0]
             self.points.append(first_point)
         else:
