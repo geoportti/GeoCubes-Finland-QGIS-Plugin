@@ -1018,16 +1018,15 @@ class GeocubesPlugin:
             
             self.poly_checkbox = self.dlg.polyCheckbox
             
+            # list of possible resolutions. Update if this changes
+            resolutions = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
+            self.resolution_box.addItems(str(resolution) for resolution in resolutions)
+            
         """Code below is ran every time the plugin is restarted but Qgis isn't"""
         
         # current base url (shared by all queries) of the Geocubes project. Modify if url changes
         self.url_base = "http://86.50.168.160/geocubes"
         
-        # list of possible resolutions. Update if this changes
-        resolutions = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
-        # empty the box when plugin is restarted
-        self.resolution_box.clear()
-        self.resolution_box.addItems(str(resolution) for resolution in resolutions)
         # set the box empty by default
         self.resolution_box.setCurrentIndex(-1)
         
