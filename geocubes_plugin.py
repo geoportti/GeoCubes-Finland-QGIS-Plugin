@@ -25,7 +25,8 @@ from PyQt5.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication,
                           Qt, QUrl, QEventLoop)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
-                             QSizePolicy, QFileDialog, QTableWidget, QHeaderView)
+                             QSizePolicy, QFileDialog, QTableWidget, QHeaderView,
+                             QMessageBox)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
                        Qgis, QgsVectorLayer, QgsFileDownloader)
 from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
@@ -825,6 +826,19 @@ class GeocubesPlugin:
                                  'geocubes_plugin',
                                  Qgis.Info)
         """
+        
+    def questionCrs(self):
+        buttonReply = QMessageBox.question(self.dlg, 'Incorrect CRS set', 
+                        "Plugin requires CRS to be EPSG:3067 to function correctly. "+
+                        "Do you want to change the current destination CRS to EPSG:3067?"
+                        "\nNOTE: Project CRS on the lower right corner will not change.",
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if buttonReply == QMessageBox.Yes:
+            self.canvas.setDestinationCrs(self.proj_crs)
+        else:
+            self.sendWarning("Incorrect CRS set", "Some features may not work"+
+                             " or they function incorrectly", 7)
+    
     def formatPolygon(self):
         polygon_str = ""
         for point in self.polygon_list:
@@ -1015,21 +1029,6 @@ class GeocubesPlugin:
         self.admin_areas_box.setCurrentIndex(-1)
         self.admin_area = self.admin_areas_box.currentText()
         
-        if self.canvas.mapSettings().destinationCrs() != self.proj_crs:
-            self.canvas.setDestinationCrs(self.proj_crs)
-                                    
-            self.sendWarning("CRS changed", "CRS must be EPSG:3067."+ 
-                             " Destination CRS changed to it.", 9)
-        # canvas extent at the start
-        og_extent = self.canvas.extent()
-        
-        # these three things must be set when initialising the extent box
-        self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
-        self.extent_box.setCurrentExtent(og_extent, self.proj_crs)
-        self.extent_box.setOutputCrs(self.proj_crs)
-        
-        # push current extent to the box
-        self.updateExtent()
         
         #self.extentResolution()
         
@@ -1047,3 +1046,18 @@ class GeocubesPlugin:
         
         # show the dialog
         self.dlg.show()
+        
+        # if QGIS' CRS is not EPSG:3067, ask user if they want to change it
+        if self.canvas.mapSettings().destinationCrs() != self.proj_crs:
+            self.questionCrs()
+
+        # canvas extent at the start
+        og_extent = self.canvas.extent()
+        
+        # these three things must be set when initialising the extent box
+        self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
+        self.extent_box.setCurrentExtent(og_extent, self.proj_crs)
+        self.extent_box.setOutputCrs(self.proj_crs)
+        
+        # push current extent to the box
+        self.updateExtent()

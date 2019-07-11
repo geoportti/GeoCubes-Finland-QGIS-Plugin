@@ -15,6 +15,9 @@ from qgis.gui import (QgsMapCanvas, QgsMapToolPan,
                       QgsMapToolEmitPoint, QgsRubberBand)
 
 class PolygonMapWindow(QMainWindow):
+    """Open a map window where the user can draw a polygon and use it to crop data.
+       Shares a lot of similarities with MapWindow calss, but there're enough differences
+        that I decided not to inherit from it."""
     # signal emitted when polygons succesfully selected
     finished = pyqtSignal()
     
@@ -107,12 +110,14 @@ class PolygonMapWindow(QMainWindow):
         self.canvas.setMapTool(self.toolPan)
         
     def draw(self):
+        """Activates draw tool"""
         self.canvas.setMapTool(self.toolDraw)
         
     def clear(self):
         self.toolDraw.reset()
     
     def connect(self):
+        """Calls the polygon tool to connect an unconnected polygon"""
         self.toolDraw.finishPolygon()
         
     def finishedSelection(self):
@@ -127,6 +132,8 @@ class PolygonMapWindow(QMainWindow):
         self.close()
         
     def showCanvas(self):
+        """Shows the map canvas with a vector background map for reference"""
+        
         url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
         "&request=GetFeature&typename=ogiir:maakuntajako_2018_4500k&pagingEnabled=true")
         self.bg_layer = QgsVectorLayer(url, "BACKGROUND-REMOVE", "WFS")
@@ -140,9 +147,8 @@ class PolygonMapWindow(QMainWindow):
         
     def closeEvent(self, event):
         """Activated anytime Mapwindow is closed either programmatically or
-            if the user finds some other way to close the window. Removes
-            selection and deletes scrap maplayer."""
-        #self.clear()
+            if the user finds some other way to close the window. Automatically
+            finishes the polygon if it's unconnected."""
         try:
             QgsProject.instance().removeMapLayer(self.bg_layer)
         except Exception:
@@ -155,31 +161,47 @@ class PolygonMapWindow(QMainWindow):
         
         
 class PolygonMapTool(QgsMapToolEmitPoint):
+    """This class holds a map tool to create a polygon from points got by clicking
+        on the map window. Points are stored in a list of point geometries, which is returned to
+        the main plugin for use."""
     def __init__(self, canvas):
         self.canvas = canvas
         QgsMapToolEmitPoint.__init__(self, self.canvas)
+        # rubberband class gives the user visual feedback of the drawing
         self.rubberBand = QgsRubberBand(self.canvas, True)
+        # setting up outline and fill color: both light blue
         self.rubberBand.setColor(QColor(175,238,238))
+        # last value indicates transparency (0-255)
         self.rubberBand.setFillColor(QColor(100,255,255,140))
         self.rubberBand.setWidth(3)
         self.points = []
+        # a flag indicating when a single polygon is finished
         self.finished = False
         self.reset()
       
     def reset(self):
+        """Empties the canvas and the points gathered thus far"""
         self.rubberBand.reset(True)
         self.points.clear()
 
     def keyPressEvent(self, e):
-        self.reset()
+        """Pressing ESC resets the canvas. Pressing enter connects the polygon"""
+        if (e.key() == 16777216):
+            self.reset()
+        if (e.key() == 16777220):
+            self.finishPolygon()
 
     def canvasPressEvent(self, e):
+        """Activated when user clicks on the canvas. Gets coordinates, draws
+        them on the map and adds to the list of points."""
+        # if the finished flag is activated, the canvas will be must be reset
+        # for a new polygon
         if self.finished:
             self.reset()
             self.finished = False
         
         self.click_point = self.toMapCoordinates(e.pos())
-
+        
         self.rubberBand.addPoint(self.click_point, True)
         self.points.append(self.click_point)
         self.rubberBand.show()
@@ -188,20 +210,27 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         self.finishPolygon()
         
     def finishPolygon(self):
+        """Activated when by user or when the map window is closed without connecting
+            the polygon. Makes the polygon valid by making first and last point
+            the same. This is reflected visually. Up until now the user has been
+            drawing a line: a polygon is created and shown on the map."""
+        # nothing will happen if the code below has already been ran
         if self.finished:
             return
-        if len(self.points)>2:
+        # connecting the polygon is valid if there's already at least 2 points
+        elif len(self.points)>2:
             first_point = self.points[0]
             self.points.append(first_point)
+            self.rubberBand.closePoints()
+            self.rubberBand.addPoint(first_point, True)
+            self.finished = True
+            # a polygon is created and added to the map for visual purposes
+            map_polygon = QgsGeometry.fromPolygonXY([self.points])
+            self.rubberBand.setToGeometry(map_polygon)
         else:
             self.finished = True
-            return
-        self.rubberBand.closePoints()
-        self.rubberBand.addPoint(self.points[0], True)
-        self.finished = True
-        map_polygon = QgsGeometry.fromPolygonXY([self.points])
-        self.rubberBand.setToGeometry(map_polygon)
-        
+            
     def getPoints(self):
+        """Returns list of PointXY geometries, i.e. the polygon in list form"""
         self.rubberBand.reset(True)
         return self.points
