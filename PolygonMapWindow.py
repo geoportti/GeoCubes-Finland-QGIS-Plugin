@@ -8,9 +8,7 @@ Created on Mon Jul  1 16:15:03 2019
 from qgis.PyQt.QtWidgets import QAction, QMainWindow, QSizePolicy
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
-from qgis.core import (QgsPalLayerSettings, QgsVectorLayerSimpleLabeling,
-                       QgsTextFormat, QgsTextBufferSettings, QgsProject,
-                       QgsVectorLayer, QgsGeometry)
+from qgis.core import (QgsProject, QgsVectorLayer, QgsGeometry)
 from qgis.gui import (QgsMapCanvas, QgsMapToolPan,
                       QgsMapToolEmitPoint, QgsRubberBand)
 
@@ -31,36 +29,7 @@ class PolygonMapWindow(QMainWindow):
         self.canvas.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.canvas.setCanvasColor(Qt.white)
         self.canvas.enableAntiAliasing(True)
-        
-        """
-        # empty list for selected polygons
-        #self.selected_features = []
-        
-        # setting up label settings: object below houses all of them
-        self.label_settings = QgsPalLayerSettings()
-        
-        # object for text settings
-        text_format = QgsTextFormat()
-        
-        text_format.setFont(QFont("Helvetica", 12))
-        text_format.setSize(7)
-        
-        # setting up a white buffer around the labels
-        buffer_settings = QgsTextBufferSettings()
-        buffer_settings.setEnabled(True)
-        buffer_settings.setSize(0.65)
-        buffer_settings.setColor(Qt.white)
-        text_format.setBuffer(buffer_settings)
-        
-        # label settings:
-        # fieldName = which field is shown as the label (currently Finnish name)
-        # placement = labels can be placed differently in relation to one another
-        #              - see documentation for details
-        self.label_settings.setFormat(text_format)
-        self.label_settings.fieldName = "namefin"
-        self.label_settings.placement = 0
-        self.label_settings.enabled = True
-        """
+
         # Qmainwindow requires a central widget. Canvas is placed
         self.setCentralWidget(self.canvas)
         
@@ -85,7 +54,7 @@ class PolygonMapWindow(QMainWindow):
         self.actionCancel.triggered.connect(self.cancel)
         
         # toolbar at the top of the screen: houses actions as buttons
-        # change order here to change their placement on window
+        # change order here to change their placement on toolbar
         self.toolbar = self.addToolBar("Canvas actions")
         self.toolbar.setContextMenuPolicy(Qt.PreventContextMenu)
         self.toolbar.setMovable(False)

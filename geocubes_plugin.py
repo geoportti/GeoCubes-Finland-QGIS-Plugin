@@ -387,6 +387,13 @@ class GeocubesPlugin:
         # add or subtract from the layer count
         self.table.itemChanged.connect(self.updateCountText)
         
+    def deselectDatasets(self):
+        for row_id in range(self.table.rowCount()):
+            cbox = self.table.item(row_id, 3)
+            cbox.setCheckState(0)
+            
+        self.updateCountText
+        
     def updateCountText(self):
         """Activated when checkbox states change. Updates the count accordingly"""
         if not self.resolution:
@@ -505,7 +512,6 @@ class GeocubesPlugin:
         passing the url as data source (referred to as temp layer, though strictly
         speaking I don't believe it's saved to some temp folder. Not sure though).
         Another option is to save layers to disk and passing that as the source.
-        [SAVE TO DISK TO BE IMPLEMENTED]
         """
         # nothing will be downloaded if nothing is selected. Notifies user. Else continue
         if(len(self.datasets_to_download) == 0):
@@ -565,6 +571,7 @@ class GeocubesPlugin:
 
             self.busy_dialog.close()
             self.table.clearSelection()
+            self.deselectDatasets()
             self.updateCountText()
             
     def addLayerToQgis(self, url, name="geocubes_raster_layer", year=""):
@@ -638,13 +645,6 @@ class GeocubesPlugin:
         downloader.startDownload()
         
         self.loop.exec_()
-    """
-    def clearSelections(self):
-        self.table.clear()
-        self.datasets_to_download.clear()
-        self.areas_box.deselectAllOptions()
-        self.updateCountText()
-    """
     
     def formatLabels(self, label_string):
         """Server returns a string with items separated by commas. This function
@@ -682,7 +682,6 @@ class GeocubesPlugin:
             index = int(label[0])
             name = label[1]
 
-            
             renderer.setLabel(index, name)
                             
     def formBboxUrl(self, name, year):
@@ -707,6 +706,7 @@ class GeocubesPlugin:
         return admin_url
     
     def formPolygonUrl(self, name, year):
+        """Forms the url for an user drawn polygon clip"""
         poly_url = (self.url_base + "/clip/" + self.resolution +
                     "/"+ name +"/polygon:" + self.formatPolygon()
                     + "/" + year)
@@ -762,8 +762,15 @@ class GeocubesPlugin:
         self.poly_map_canvas.showCanvas()
         
     def getMapPolygon(self):
-        #self.polygon_list.clear()
+        """Activated when signal indicating polygon drawing is finished is emitted.
+            Gets the list of point values and does a simple but hopefully exhaustive
+            check of the polygon validity. Warn the user if the polygon is faulty.
+            If valid, indicate by checking the appropriate box."""
+        
         self.polygon_list = self.poly_map_canvas.getPolygon()
+        
+        # assumes that the polygon must have at least 3 points. First and last
+        # points must also be the same (this error shoudln't happen but who knows)
         if (len(self.polygon_list)<3 or not self.polygon_list[0] ==
         self.polygon_list[len(self.polygon_list)-1]):
             self.sendWarning("Invalid polygon", "Please redraw polygon", 8)
@@ -828,6 +835,9 @@ class GeocubesPlugin:
         """
         
     def questionCrs(self):
+        """Called if QGIS' CRS isn't EPSG:3067. Asks the user to change destination
+            CRS and changes if allowed. If refused, warns the user."""
+            
         buttonReply = QMessageBox.question(self.dlg, 'Incorrect CRS set', 
                         "Plugin requires CRS to be EPSG:3067 to function correctly. "+
                         "Do you want to change the current destination CRS to EPSG:3067?"
@@ -840,6 +850,10 @@ class GeocubesPlugin:
                              " or they function incorrectly", 7)
     
     def formatPolygon(self):
+        """Returns polygons in a url form suitable for the Geocubes API.
+        Takes a list of PointXY's (tuples consisting of coordinate doubles) and
+        trims the at the decimal point. Returns as a string with each value
+        separated by comma."""
         polygon_str = ""
         for point in self.polygon_list:
             if not polygon_str:
@@ -889,11 +903,8 @@ class GeocubesPlugin:
                     codes = codes + "," + code
             return codes
         
-    def clearTableSelections(self):
-        self.table.clearSelection()
-        
     def run(self):
-        """Run method that performs all the real work"""
+        """Run method that initializes the plugin and its variables"""
 
         # if the plugin is started for the first time,
         # create necessary variables and connect signals to slots
@@ -916,9 +927,6 @@ class GeocubesPlugin:
             
             #ensures entries in the table cannot be edited
             self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-            
-            #self.clear_selection = self.dlg.clearSelectionButton
-            #self.clear_selection.clicked.connect(self.clearTableSelections)
             
             # connect click of the fetch data layers button to functions
             self.dlg.getContents.clicked.connect(self.setToTable)
@@ -1043,6 +1051,8 @@ class GeocubesPlugin:
         self.gtiff_radio_button.setChecked(True)
         
         self.areas_box.clear()
+        
+        self.deselectDatasets()
         
         # show the dialog
         self.dlg.show()
