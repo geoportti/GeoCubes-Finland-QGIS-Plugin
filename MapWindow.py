@@ -104,6 +104,8 @@ class MapWindow(QMainWindow):
         
         self.blocks_flag = False
         
+        self.selection_rectangle = False
+        
         # set select tool as default
         self.select()
 
@@ -119,6 +121,7 @@ class MapWindow(QMainWindow):
             layer, sets up labels & rendering parameters and shows the layer."""
         # empty output list in case function is called multiple times
         self.selected_features.clear()
+        self.selection_rectangle = False
         
         # layer into a self variable
         self.layer = layer
@@ -218,11 +221,15 @@ class MapWindow(QMainWindow):
     def getSelection(self):
         """Returns list of selected features (polygons)"""
         return self.selected_features
+    
+    def getSelectionBbox(self):
+        return self.selection_rectangle
         
     def closeEvent(self, event):
-        """Activated anytime Mapwindow is closed either programmatically or
+        """Activated anytime Mapwindow is closed either by buttons given or
             if the user finds some other way to close the window. Removes
             selection and deletes scrap maplayer."""
+        self.selection_rectangle = self.layer.boundingBoxOfSelected()
         self.layer.removeSelection()
         QgsProject.instance().removeMapLayer(self.layer)
         try:

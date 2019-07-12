@@ -127,6 +127,9 @@ class PolygonMapWindow(QMainWindow):
         
     def getPolygon(self):
         return self.toolDraw.getPoints()
+    
+    def getPolygonBbox(self):
+        return self.toolDraw.getPolyBbox()
         
         
 class PolygonMapTool(QgsMapToolEmitPoint):
@@ -146,11 +149,13 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         self.points = []
         # a flag indicating when a single polygon is finished
         self.finished = False
+        self.poly_bbox = False
         self.reset()
       
     def reset(self):
         """Empties the canvas and the points gathered thus far"""
         self.rubberBand.reset(True)
+        self.poly_bbox = False
         self.points.clear()
 
     def keyPressEvent(self, e):
@@ -196,6 +201,7 @@ class PolygonMapTool(QgsMapToolEmitPoint):
             # a polygon is created and added to the map for visual purposes
             map_polygon = QgsGeometry.fromPolygonXY([self.points])
             self.rubberBand.setToGeometry(map_polygon)
+            self.poly_bbox = self.rubberBand.asGeometry().boundingBox()
         else:
             self.finished = True
             
@@ -203,3 +209,6 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         """Returns list of PointXY geometries, i.e. the polygon in list form"""
         self.rubberBand.reset(True)
         return self.points
+    
+    def getPolyBbox(self):
+        return self.poly_bbox

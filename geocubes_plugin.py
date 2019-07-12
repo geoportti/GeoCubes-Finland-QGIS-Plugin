@@ -196,18 +196,51 @@ class GeocubesPlugin:
     def setAdminArea(self):
         self.admin_area = self.admin_areas_box.currentText()
         
-    def sendWarning(self, title, text, duration):
+    def sendWarning(self, title, text, duration, warning=True):
         """Creates an informative warning on the top of the widget"""
-        self.msg_bar.pushMessage(title, text, Qgis.Warning, 
-                             duration = duration)
-    """
-    def extentResolution(self):
+        if warning:
+            self.msg_bar.pushMessage(title, text, Qgis.Warning,
+                                     duration = duration)
+        else:
+            self.msg_bar.pushMessage(title, text, Qgis.Info,
+                                     duration = duration)
+    
+    def setOptimalResolution(self):
+        """
         Automatically suggests a resolution for the current map scale.
         Activated when user moves the canvas and updates the resolution box.
         Suggested resolution is reached via this formula:
         https://www.esri.com/arcgis-blog/products/product/imagery/on-map-scale-and-raster-resolution/?rmedium
         
+        Scrap that. It's reached via an ad hoc formula.
+        """
+        if self.bbox_radio_button.isChecked():
+            ext = self.getExtent()
+        elif self.admin_radio_button.isChecked():
+            ext = self.map_canvas.getSelectionBbox()
+            if not ext:
+                self.sendWarning("Resolution can't be calculated", "Please select areas from map", 5)
+                return
+        elif self.poly_radio_button.isChecked():
+            ext = self.poly_map_canvas.getPolygonBbox()
+            if not ext:
+                self.sendWarning("Resolution can't be calculated", "Please draw a valid polygon", 5)
+                return
+        else:
+            return
+
+        xmin = ext.xMinimum()
+        xmax = ext.xMaximum()
+        ymin = ext.yMinimum()
+        ymax = ext.yMaximum()
         
+        x_meter = xmax-xmin
+        
+        y_meter = ymax-ymin
+        
+        optimal_resolution = (x_meter/1200) + (y_meter/1200)
+        
+        """
         # map scale as a double, i.e. 1:563000 -> 563000.000
         map_scale = self.canvas.scale()
         
@@ -215,12 +248,16 @@ class GeocubesPlugin:
 
         real_resolution = detectable_size / 2
         
+        """
         # fetch all resolutions from the box as integers
         all_resolutions = [int(self.resolution_box.itemText(i)) for i in range(self.resolution_box.count())]
         
         # find the resolution closest to the ones available. See:
         # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
-        closest_resolution = min(all_resolutions, key=lambda x:abs(x-real_resolution))
+        try:
+            closest_resolution = min(all_resolutions, key=lambda x:abs(x-optimal_resolution))
+        except Exception:
+            return
         
         resolution_idx = self.resolution_box.findText(str(closest_resolution))
         
@@ -229,7 +266,6 @@ class GeocubesPlugin:
         self.setResolution()
         
         self.updateCountText()
-    """
             
     def getDatasets(self):
         """Sends a query to Geocubes and receives text describing the data.
@@ -406,9 +442,6 @@ class GeocubesPlugin:
         else:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
                                           ' layers selected | ' + res_text)
-            
-    def updateDataText(self, msg):
-        self.data_info_text.setText(msg)
         
     def checkboxState(self, cbox):
         """itemChanged signal passes the checkbox (cbox). This function
@@ -564,9 +597,10 @@ class GeocubesPlugin:
 
 
             # once all layers are downloaded, inform how many were succesful
-            self.updateDataText(str(self.successful_layers) + "/" +
+            data_text = (str(self.successful_layers) + "/" +
                                 str(len(dataset_parameters))+ " layer(s)" +
                                 " successfully downloaded")
+            self.sendWarning("Download complete", data_text, 9, warning=False)
 
 
             self.busy_dialog.close()
@@ -793,6 +827,9 @@ class GeocubesPlugin:
         name_list = []
         block_minus = 0
         
+        # blocks' attribute tables are different than the rest
+        # the features wanted are on a different column, hence the need to
+        # subtract from the column count
         if block_flag:
             block_minus = 1
         
@@ -962,12 +999,11 @@ class GeocubesPlugin:
             self.poly_draw_button = self.dlg.polyDrawButton
             self.poly_draw_button.clicked.connect(self.openPolyMapWindow)
             
+            self.optimal_res_button = self.dlg.optimalResolutionButton
+            self.optimal_res_button.clicked.connect(self.setOptimalResolution)
+            
             # text that tells the user the current count of selected layers
             self.layer_count_text = self.dlg.layerCountText
-            
-            # text that informs the user on things related to downloading
-            # the data layers
-            self.data_info_text = self.dlg.dataInfoText
             
             # radio buttons for user to decide whether to get the data as
             # temporary layers or save the rasters to disc
@@ -1039,9 +1075,8 @@ class GeocubesPlugin:
         
         #self.extentResolution()
         
-        # set default texts
+        # set default text
         self.updateCountText()
-        self.data_info_text.setText('Get datasets here')
         
         #self.bbox_radio_button.setChecked(True)
         
