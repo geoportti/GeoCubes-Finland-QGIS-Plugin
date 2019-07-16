@@ -28,7 +28,8 @@ from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
                              QSizePolicy, QFileDialog, QTableWidget, QHeaderView,
                              QMessageBox)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
-                       Qgis, QgsVectorLayer, QgsFileDownloader)
+                       Qgis, QgsVectorLayer, QgsFileDownloader, QgsExpression,
+                       QgsFeatureRequest)
 from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
 
 # Initialize Qt resources from file resources.py
@@ -217,9 +218,9 @@ class GeocubesPlugin:
         if self.bbox_radio_button.isChecked():
             ext = self.getExtent()
         elif self.admin_radio_button.isChecked():
-            ext = self.map_canvas.getSelectionBbox()
+            ext = self.bboxOfSelectedAreas()
             if not ext:
-                self.sendWarning("Resolution can't be calculated", "Please select areas from map", 5)
+                self.sendWarning("Resolution can't be calculated", "Please select areas", 5)
                 return
         elif self.poly_radio_button.isChecked():
             ext = self.poly_map_canvas.getPolygonBbox()
@@ -238,7 +239,10 @@ class GeocubesPlugin:
         
         y_meter = ymax-ymin
         
-        optimal_resolution = (x_meter/1200) + (y_meter/1200)
+        # this is arbitrary. Increase division values to suggest higher resolution
+        # at larger images and vice versa
+        divider = 1200
+        optimal_resolution = (x_meter/divider) + (y_meter/divider)
         
         """
         # map scale as a double, i.e. 1:563000 -> 563000.000
@@ -254,6 +258,7 @@ class GeocubesPlugin:
         
         # find the resolution closest to the ones available. See:
         # https://stackoverflow.com/questions/12141150/from-list-of-integers-get-number-closest-to-a-given-value
+        # in a try clause because it has sometimes errored due to unknown reasons
         try:
             closest_resolution = min(all_resolutions, key=lambda x:abs(x-optimal_resolution))
         except Exception:
@@ -303,11 +308,9 @@ class GeocubesPlugin:
             
             return response_string
         
-        
-    
     def requestValidity(self, s_code, request_type):
-        """Should the network query fail, show a informative warning 
-            and return false"""
+        """Checks if the network request errored and shows an informative msg
+            to the user."""
         if (s_code == 204):
             self.sendWarning("Empty response", "Failed to fetch " + request_type
                              + ". Error: "+ str(s_code), 8)
@@ -424,6 +427,7 @@ class GeocubesPlugin:
         self.table.itemChanged.connect(self.updateCountText)
         
     def deselectDatasets(self):
+        """Nullifies selections on the datasets table."""
         for row_id in range(self.table.rowCount()):
             cbox = self.table.item(row_id, 3)
             cbox.setCheckState(0)
@@ -431,7 +435,7 @@ class GeocubesPlugin:
         self.updateCountText
         
     def updateCountText(self):
-        """Activated when checkbox states change. Updates the count accordingly"""
+        """Activated when checkbox states change. Updates the count accordingly."""
         if not self.resolution:
             res_text = "No resolution selected"
         else:
@@ -594,8 +598,6 @@ class GeocubesPlugin:
                 else:
                     self.addLayerToQgis(data_url, name=name, year=year)
                     
-
-
             # once all layers are downloaded, inform how many were succesful
             data_text = (str(self.successful_layers) + "/" +
                                 str(len(dataset_parameters))+ " layer(s)" +
@@ -604,7 +606,6 @@ class GeocubesPlugin:
 
 
             self.busy_dialog.close()
-            self.table.clearSelection()
             self.deselectDatasets()
             self.updateCountText()
             
@@ -622,7 +623,6 @@ class GeocubesPlugin:
         if not raster_layer.isValid():
             self.sendWarning("Layer invalid", ''.join([name,'_',year])+
                                      " failed to download", 9)
-            #return False
         else:
             """If raster layer renderer is of type QgsPalettedRasterRenderer,
             it's most likely categorized data that has labels.
@@ -638,8 +638,40 @@ class GeocubesPlugin:
             # insert raster layer to main canvas and Qgis legend for use
             QgsProject.instance().addMapLayer(raster_layer)
             self.successful_layers += 1
-            #return True
-    
+            
+    def bboxOfSelectedAreas(self):
+        if self.admin_area == "Blocks":
+            column_name = "uleast"
+        else:
+            column_name = "namefin"
+        
+        ids = []
+        
+        items = self.areas_box.checkedItems()
+        
+        if len(items) == 0:
+            return False
+        
+        for item in items:
+            split = item.split('|')
+            name = split[0]
+            
+            expression = QgsExpression("\"{}\"='{}'".format(column_name, name))
+            
+            iterator = self.vlayer.getFeatures(QgsFeatureRequest(expression))
+            
+            index = [i.id() for i in iterator]
+            
+            ids.append(index[0])
+        
+        self.vlayer.selectByIds(ids)
+        
+        bbox = self.vlayer.boundingBoxOfSelected()
+        
+        self.vlayer.removeSelection()
+        
+        return bbox
+
     def downloadFailed(self, error):
         """Run in case the file downloader errors"""
         self.loop.exit()
@@ -731,7 +763,7 @@ class GeocubesPlugin:
     
     def formAdminUrl(self, name, year):
         """Forms the url for an admin area clip"""
-        areas = self.areaBoxSelection()
+        areas = self.areas_box.checkedItems()
         admin_url = (self.url_base + "/clip/" + self.resolution +"/"+ name +
                      "/"+self.admin_area.lower()+":" + self.formatAreas(areas)
                         + "/" + year)
@@ -849,10 +881,6 @@ class GeocubesPlugin:
         # add all area strings to the box
         self.areas_box.addItems(name for name in name_list)
         self.busy_dialog.close()
-        
-    def areaBoxSelection(self):
-        """Returns current selection in the 'Areas' drop box as a list"""
-        return self.areas_box.checkedItems()
     
     def updateExtent(self):
         """Updates extent boxes when the canvas extent changes"""
@@ -1028,6 +1056,8 @@ class GeocubesPlugin:
             self.admin_areas_box.addItems(label for label in admin_area_labels)
             self.admin_areas_box.currentTextChanged.connect(self.setAdminArea)
             self.admin_areas_box.currentTextChanged.connect(self.getAreas)
+            
+            self.checkedAreas = []
             
             self.busy_dialog = QgsBusyIndicatorDialog("Processing... Please wait", self.dlg)
             

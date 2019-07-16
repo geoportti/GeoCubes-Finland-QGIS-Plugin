@@ -8,7 +8,7 @@ Created on Thu Jun 20 10:18:46 2019
 #from qgis.gui import *
 from qgis.PyQt.QtWidgets import QAction, QMainWindow, QSizePolicy
 from qgis.PyQt.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QColor
 from qgis.core import (QgsPalLayerSettings, QgsVectorLayerSimpleLabeling,
                        QgsTextFormat, QgsTextBufferSettings, QgsProject,
                        QgsVectorLayer)
@@ -33,6 +33,7 @@ class MapWindow(QMainWindow):
         self.canvas.setMinimumSize(550, 700)
         self.canvas.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.canvas.setCanvasColor(Qt.white)
+        self.canvas.setSelectionColor(QColor(255,255,26,200))
         self.canvas.enableAntiAliasing(True)
 
         # empty list for selected polygons

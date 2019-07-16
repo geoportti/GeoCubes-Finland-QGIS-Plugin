@@ -143,7 +143,7 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         self.rubberBand = QgsRubberBand(self.canvas, True)
         # setting up outline and fill color: both light blue
         self.rubberBand.setColor(QColor(175,238,238))
-        # last value indicates transparency (0-255)
+        # RGB color values, last value indicates transparency (0-255)
         self.rubberBand.setFillColor(QColor(100,255,255,140))
         self.rubberBand.setWidth(3)
         self.points = []
