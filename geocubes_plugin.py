@@ -215,44 +215,26 @@ class GeocubesPlugin:
         
         Scrap that. It's reached via an ad hoc formula.
         """
-        if self.bbox_radio_button.isChecked():
-            ext = self.getExtent()
-        elif self.admin_radio_button.isChecked():
-            ext = self.bboxOfSelectedAreas()
-            if not ext:
-                self.sendWarning("Resolution can't be calculated", "Please select areas", 5)
-                return
-        elif self.poly_radio_button.isChecked():
-            ext = self.poly_map_canvas.getPolygonBbox()
-            if not ext:
-                self.sendWarning("Resolution can't be calculated", "Please draw a valid polygon", 5)
-                return
-        else:
-            return
-
+        ext = self.getExtents()
+        
+        if not ext:
+            self.sendWarning("No valid input for resolution calculation", 
+                             "Please add parameters first.", 6)
+        # get max and min values from the qgsrectangle
         xmin = ext.xMinimum()
         xmax = ext.xMaximum()
         ymin = ext.yMinimum()
         ymax = ext.yMaximum()
         
+        # difference of these values is the length of one side of the rectangle
         x_meter = xmax-xmin
-        
         y_meter = ymax-ymin
         
-        # this is arbitrary. Increase division values to suggest higher resolution
-        # at larger images and vice versa
+        # this is arbitrary. Increase divider value to make the formula suggest
+        # smaller resolutions easier and vise versa.
         divider = 1200
         optimal_resolution = (x_meter/divider) + (y_meter/divider)
-        
-        """
-        # map scale as a double, i.e. 1:563000 -> 563000.000
-        map_scale = self.canvas.scale()
-        
-        detectable_size = map_scale / 1000
 
-        real_resolution = detectable_size / 2
-        
-        """
         # fetch all resolutions from the box as integers
         all_resolutions = [int(self.resolution_box.itemText(i)) for i in range(self.resolution_box.count())]
         
@@ -271,6 +253,22 @@ class GeocubesPlugin:
         self.setResolution()
         
         self.updateCountText()
+        
+    def getExtents(self):
+        # see which crop type is selected, get appropriate bounding box
+        # extent box should always have values, others might not. 
+        # sends warning if values are absent. does nothing if crop method's not selected.
+        if self.bbox_radio_button.isChecked():
+            ext = self.getBboxExtent()
+            return ext
+        elif self.admin_radio_button.isChecked():
+            ext = self.bboxOfSelectedAreas()
+            return ext
+        elif self.poly_radio_button.isChecked():
+            ext = self.poly_map_canvas.getPolygonBbox()
+            return ext
+        else:
+            return False
             
     def getDatasets(self):
         """Sends a query to Geocubes and receives text describing the data.
@@ -498,17 +496,18 @@ class GeocubesPlugin:
         self.datasets_to_download.clear()
         self.updateCountText()
     
-    def estimateFileSize(self):
+    def estimateFileSize(self, bit_depth, name):
         """Is activated when user selects a resolution. Estimates the file size
         of a single layer download in MB based on known factors. These are:
         -extent, how many x & y lines there are and therefore, how many pixels
         -radiometric resolution (aka bit depth or data type in QGIS): 8, 16, 32 bits
             As of now, the radiometric resolution is hardcoded to be 16.
         Warns users of too large files (set to 50 MB atm)"""
-        if not self.bbox_radio_button.isChecked():
-            return
         
-        ext = self.getExtent()
+        ext = self.getExtents()
+        if not ext:
+            return True
+        
         xmin = ext.xMinimum()
         xmax = ext.xMaximum()
         ymin = ext.yMinimum()
@@ -517,18 +516,25 @@ class GeocubesPlugin:
         # (x-axis / resolution) * (y-axis / resolution)
         pixelcount = (xmax-xmin)/int(self.resolution) * ((ymax-ymin)/ int(self.resolution))
         
-        data_type = 16
-        
         # times radiometric resolution
-        size_in_bits = pixelcount * data_type
+        size_in_bits = pixelcount * int(bit_depth)
         
         # size in bits -> to bytes -> to kB -> to MB
         size_in_mb = size_in_bits/8/1024/1024
         
-        if size_in_mb > 50:
-            self.sendWarning("Layer size warning", "Download is estimated to be: "+
-                             str(int(size_in_mb)) + " MB", 6)
-        
+        if size_in_mb > 100:
+            buttonReply = QMessageBox.question(self.dlg, 'File size warning', 
+                        "Download for layer " + name + " is estimated to be " +
+                        str(int(size_in_mb)) + " MB, which is over the suggested limit. " +
+                        "Download might take a long time or the layer might make" + 
+                        " QGIS run slowly or crash. Do you want to proceed with the download?",
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if buttonReply == QMessageBox.Yes:
+                return True
+            else:
+                return False
+        else:
+            return True
         
     def getValues(self):
         """Extracts all values (name/year tuples). Returns them as a list"""
@@ -570,16 +576,25 @@ class GeocubesPlugin:
             
             # a simple count of succesful downloads
             self.successful_layers = 0
-        
-            self.busy_dialog.show()
+            
             # 1 to n loops to download all selected data
             for parameter in dataset_parameters:
+                
                 # accessing values, which are stored as tuples
                 name = parameter[0]
+                bit_depth = parameter[1]
                 year = parameter[2]
+                
+                if self.gtiff_radio_button.isChecked():
+                    proceed = self.estimateFileSize(bit_depth, name)
+                    if not proceed:
+                        self.sendWarning("Download stopped", "Download of " +
+                                         name + " layer was stopped by user.",
+                                         8, warning=False)
+                        continue
                     
-                # forming the url that's passed to server. see:
-                # http://86.50.168.160/geocubes/examples/ for examples.
+                # forming the url that's passed to server. 
+                # see: http://86.50.168.160/geocubes/examples/ for examples.
                 # Url uses either bbox, polygon or admin areas based on user choice
                 if self.bbox_radio_button.isChecked():
                     data_url = self.formBboxUrl(name, year)
@@ -640,6 +655,12 @@ class GeocubesPlugin:
             self.successful_layers += 1
             
     def bboxOfSelectedAreas(self):
+        """Queries the areas selected by the user from the admin area 
+            vector layer. Derives a bounding box (qgsrectangle) of the selection.
+            Returns either that or a boolean false in case no items are selected."""
+        
+        # column name to query from
+        # blocks layer has different column names compared to the to others
         if self.admin_area == "Blocks":
             column_name = "uleast"
         else:
@@ -647,27 +668,35 @@ class GeocubesPlugin:
         
         ids = []
         
+        # get checked items as a list of strings
         items = self.areas_box.checkedItems()
         
+        # if no items are checked, return false
         if len(items) == 0:
             return False
         
+        # loop through the selections
         for item in items:
+            # use only the name, e.g.Tampere or code in case of blocks
             split = item.split('|')
             name = split[0]
             
+            # building the expression. Follows sql standars, I think?
             expression = QgsExpression("\"{}\"='{}'".format(column_name, name))
-            
+            # get features with the expression – should return just one
             iterator = self.vlayer.getFeatures(QgsFeatureRequest(expression))
             
+            # get id codes of the feature
             index = [i.id() for i in iterator]
             
             ids.append(index[0])
         
+        # finally, make selection based on the id list
         self.vlayer.selectByIds(ids)
         
         bbox = self.vlayer.boundingBoxOfSelected()
         
+        # remove selection, otherwise it causes harm on the map window
         self.vlayer.removeSelection()
         
         return bbox
@@ -752,7 +781,7 @@ class GeocubesPlugin:
                             
     def formBboxUrl(self, name, year):
         """Forms the url for a bbox clip"""
-        extent = self.getExtent()
+        extent = self.getBboxExtent()
         bbox_url = (self.url_base + "/clip/" + self.resolution +
                         "/"+ name +"/bbox:" + self.formatExtent(extent)
                         + "/" + year)
@@ -887,7 +916,7 @@ class GeocubesPlugin:
         self.extent_box.setCurrentExtent(self.canvas.extent(), self.proj_crs)
         self.extent_box.setOutputExtentFromCurrent()
             
-    def getExtent(self):
+    def getBboxExtent(self):
         """Current extent shown in the extent groupbox
         Returns a rectangle object"""
         output_extent = self.extent_box.outputExtent()
@@ -1013,9 +1042,6 @@ class GeocubesPlugin:
             self.resolution_box = self.dlg.resolutionBox
             self.resolution_box.activated.connect(self.setResolution)
             
-            # estimate download file size when resolution changes
-            self.resolution_box.activated.connect(self.estimateFileSize)
-            
             self.resolution_box.activated.connect(self.updateCountText)
             
             self.data_button = self.dlg.getDataButton
@@ -1102,8 +1128,6 @@ class GeocubesPlugin:
         self.admin_areas_box.setCurrentIndex(-1)
         self.admin_area = self.admin_areas_box.currentText()
         
-        
-        #self.extentResolution()
         
         # set default text
         self.updateCountText()
