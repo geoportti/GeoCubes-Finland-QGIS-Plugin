@@ -4,7 +4,7 @@ A QGIS plugin to access GeoCubes Finland, maintained by Finnish Geospatial Resea
 ## What is Geocubes Finland?
 Geocubes Finland is a harmonised, multi-resolution raster geodata repository that contains several key national datasets such as Digital Elevation Model, superficial deposits, land cover and forestry. Read more on [Geocubes Finland main site](http://86.50.168.160/geocubes) and [description on usage and citing](https://github.com/geoportti/GeoCubes).
 #### Harmonised? What does that mean?
-Simply that the data is as simple to access and use as can be. All of the data is in the same CRS (EPSG:3067), is georeferenced uniformly and is available as both a GeoTIFF image or a VRT virtual file. The data is available in resolutions ranging from 1 to 1000 meters and can be cropped flexibly with e.g. a bounding box or an administrative area boundaries. Read more [here](http://86.50.168.160/geocubes/description/).
+Simply that the data is as simple to access and use as can be. All of the data is in the same CRS (EPSG:3067), is georeferenced uniformly and is available as both a GeoTIFF image or a VRT virtual file. The data is available in resolutions ranging from 1 to 1000 meters and can be cropped flexibly with e.g. a bounding box or administrative area boundaries. Read more [here](http://86.50.168.160/geocubes/description/).
 All of this means that **accessing raster datasets is easier than ever before**.
 #### Who's the service for?
 Geocubes Finland is aimed to support the needs of Finnish research community, but the service and its data is freely usable by anyone interested. Please see the [citing guidelines](https://github.com/geoportti/GeoCubes) if you use Geocubes Finland in your work.
