@@ -10,7 +10,7 @@ All of this means that **accessing raster datasets is easier than ever before**.
 Geocubes Finland is aimed to support the needs of Finnish research community, but the service and its data is freely usable by anyone interested. Please see the [citing guidelines](https://github.com/geoportti/GeoCubes#usage-and-citing) if you use Geocubes Finland in your work.
 
 ## Geocubes Finland plugin
-This QGIS 3.x plugin enables using all of the abovementioned features effortlessly in your QGIS 3 installation. Simply select three parameters: raster layers to download, cropping method and raster resolution. Crop with a bounding box, administrative areas or draw a polygon to crop with. Then select either GeoTIFF or VRT file. After download, a layer is added to QGIS, where you can use it for further analysis. You may use files from the Geocubes Finland server or save the file locally to disk: the latter is beneficial for larger files.
+This QGIS 3.x plugin enables using all of the abovementioned features effortlessly in your QGIS 3 installation. Simply select three parameters: raster layers to download, cropping method and raster resolution. Crop with a bounding box, administrative areas or draw a polygon to crop with. Then select either GeoTIFF or VRT file. After download, a layer is added to QGIS, where you can use it for further analysis. You may use files from the Geocubes Finland server or save files to local storage: the former suits quick analysis on smaller rasters and the latter is beneficial for larger files.
 #### Plugin installation
 - Download the plugin to your computer from *Select clone or download* -> *Download ZIP*
 - Open QGIS, click *Plugins* drop-down menu and select *Manage and install plugins*
