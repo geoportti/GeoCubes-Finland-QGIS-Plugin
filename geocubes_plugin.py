@@ -22,7 +22,7 @@
  ***************************************************************************/
 """
 from PyQt5.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, 
-                          Qt, QUrl, QEventLoop)
+                          Qt, QUrl, QEventLoop, QFileInfo)
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
                              QSizePolicy, QFileDialog, QTableWidget, QHeaderView,
@@ -219,7 +219,8 @@ class GeocubesPlugin:
         
         if not ext:
             self.sendWarning("No valid input for resolution calculation", 
-                             "Please add parameters first.", 6)
+                             "Please select parameters first.", 6)
+            return
         # get max and min values from the qgsrectangle
         xmin = ext.xMinimum()
         xmax = ext.xMaximum()
@@ -497,12 +498,14 @@ class GeocubesPlugin:
         self.updateCountText()
     
     def estimateFileSize(self, bit_depth, name):
-        """Is activated when user selects a resolution. Estimates the file size
+        """Is activated when user downloads datasets. Estimates the file size
         of a single layer download in MB based on known factors. These are:
         -extent, how many x & y lines there are and therefore, how many pixels
-        -radiometric resolution (aka bit depth or data type in QGIS): 8, 16, 32 bits
-            As of now, the radiometric resolution is hardcoded to be 16.
-        Warns users of too large files (set to 50 MB atm)"""
+        -radiometric resolution (aka bit depth or data type in QGIS): 8, 16 and 32 bit
+         datasets area currently available on Geocubes Finland.
+         
+         User is given an option to stop the download if the estimated value is
+         over a set threshold."""
         
         ext = self.getExtents()
         if not ext:
@@ -513,7 +516,6 @@ class GeocubesPlugin:
         ymin = ext.yMinimum()
         ymax = ext.yMaximum()
         
-        # (x-axis / resolution) * (y-axis / resolution)
         pixelcount = (xmax-xmin)/int(self.resolution) * ((ymax-ymin)/ int(self.resolution))
         
         # times radiometric resolution
@@ -585,6 +587,9 @@ class GeocubesPlugin:
                 bit_depth = parameter[1]
                 year = parameter[2]
                 
+                # if a tif image is downloaded, estimate its file size
+                # should the user choose to stop the download, return to the
+                # beginning of the loop
                 if self.gtiff_radio_button.isChecked():
                     proceed = self.estimateFileSize(bit_depth, name)
                     if not proceed:
@@ -611,7 +616,7 @@ class GeocubesPlugin:
                     self.saveData(data_url, file_format, name)
                     
                 else:
-                    self.addLayerToQgis(data_url, name=name, year=year)
+                    self.addLayerToQgis(data_url, name=name, year=year, label=name)
                     
             # once all layers are downloaded, inform how many were succesful
             data_text = (str(self.successful_layers) + "/" +
@@ -619,12 +624,11 @@ class GeocubesPlugin:
                                 " successfully downloaded")
             self.sendWarning("Download complete", data_text, 9, warning=False)
 
-
             self.busy_dialog.close()
             self.deselectDatasets()
             self.updateCountText()
             
-    def addLayerToQgis(self, url, name="geocubes_raster_layer", year=""):
+    def addLayerToQgis(self, url, name="", year="", label="geocubes_raster_layer"):
         """This function receives an url address to access the files at the
             Geocubes servers. It creates a raster layer based on that url, 
             gives it a label and add the layer to QGIS. If the data is
@@ -632,7 +636,7 @@ class GeocubesPlugin:
             
         # creating raster layer by passing the url and giving
         # name and year as layer names
-        raster_layer = QgsRasterLayer(url, ''.join([name, '_', year]))
+        raster_layer = QgsRasterLayer(url, ''.join([label, '_', year]))
                     
         # if data query fails, inform user. If not, add to Qgis
         if not raster_layer.isValid():
@@ -656,7 +660,8 @@ class GeocubesPlugin:
             
     def bboxOfSelectedAreas(self):
         """Queries the areas selected by the user from the admin area 
-            vector layer. Derives a bounding box (qgsrectangle) of the selection.
+            vector layer. Selection must be made with feature id's, hence a rather
+            contrived method to get them. Derives a bounding box (qgsrectangle) of the selection.
             Returns either that or a boolean false in case no items are selected."""
         
         # column name to query from
@@ -706,36 +711,35 @@ class GeocubesPlugin:
         self.loop.exit()
         self.sendWarning("Download failed", "Error: " + str(error), 10)
         
-    def downloadSucceeded(self, file_name, name):
+    def downloadSucceeded(self, file_path, file_name, layer_name):
         """If the downloader succeeds, the file has now been downloaded on disk
             It will be added to QGIS as a layer via the file path given by user"""
         self.loop.exit()
-        self.addLayerToQgis(file_name, name=name)
+        self.addLayerToQgis(file_path, label=file_name, name=layer_name)
             
     def saveData(self, url, file_format, name):
         """This function first asks the user for a file name, then downloads
             the raster file from the server using the url from getData and
             saves it as the defined file name."""
         self.loop = QEventLoop()
-        file_name, file_filter = QFileDialog.getSaveFileName(self.dlg,
-                                "Save " + name, filter='Selected format: (*'+file_format+')')
-        if not file_name:
-            self.sendWarning("Filename required", "Please write filenames", 10)
+        file_path, file_filter = QFileDialog.getSaveFileName(self.dlg,
+                                "Save " + name, filter='Selected format: (*.'+file_format+')')
+        if not file_path:
+            self.sendWarning("Filename required", "Please write a valid filename", 10)
             return
         
-        split = file_name.split('.')
-        if len(split) == 1:
-            file_name = file_name + '.' + file_format
+        file_path_qt = QFileInfo(file_path)
+        file_name = file_path_qt.fileName()
         
         # downloader requires url as QUrl
         qt_url = QUrl(url)
         
         # this handles the download and then destructs
-        downloader = QgsFileDownloader(qt_url, file_name)
+        downloader = QgsFileDownloader(qt_url, file_path)
         
         # signals for both fail and success
         downloader.downloadError.connect(self.downloadFailed)
-        downloader.downloadCompleted.connect(lambda: self.downloadSucceeded(file_name, name))
+        downloader.downloadCompleted.connect(lambda: self.downloadSucceeded(file_path, file_name, name))
         
         downloader.startDownload()
         
@@ -933,12 +937,12 @@ class GeocubesPlugin:
             CRS and changes if allowed. If refused, warns the user."""
             
         buttonReply = QMessageBox.question(self.dlg, 'Incorrect CRS set', 
-                        "Plugin requires CRS to be EPSG:3067 to function correctly. "+
-                        "Do you want to change the current destination CRS to EPSG:3067?"
-                        "\nNOTE: Project CRS on the lower right corner will not change.",
+                        "Some features of this plugin require that Coordinate "+
+                        "Reference System is set to EPSG:3067 to function correctly."+
+                        " Do you want to change the current project CRS to EPSG:3067?",
                         QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if buttonReply == QMessageBox.Yes:
-            self.canvas.setDestinationCrs(self.proj_crs)
+            QgsProject.instance().setCrs(self.proj_crs)
         else:
             self.sendWarning("Incorrect CRS set", "Some features may not work"+
                              " or they function incorrectly", 7)

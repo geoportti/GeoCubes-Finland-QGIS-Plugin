@@ -108,7 +108,7 @@ class PolygonMapWindow(QMainWindow):
         self.bg_layer = QgsVectorLayer(url, "BACKGROUND-REMOVE", "WFS")
         
         if self.bg_layer.isValid():
-            self.bg_layer.renderer().symbol().setColor(Qt.gray)
+            self.bg_layer.renderer().symbol().setColor(QColor(170,170,170))
             QgsProject.instance().addMapLayer(self.bg_layer, False)
             self.canvas.setExtent(self.bg_layer.extent())
             self.canvas.setLayers([self.bg_layer])
@@ -191,7 +191,7 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         # nothing will happen if the code below has already been ran
         if self.finished:
             return
-        # connecting the polygon is valid if there's already at least 2 points
+        # connecting the polygon is valid if there's already at least 3 points
         elif len(self.points)>2:
             first_point = self.points[0]
             self.points.append(first_point)

@@ -135,7 +135,7 @@ class MapWindow(QMainWindow):
         self.layer.setLabelsEnabled(True)
         layer_labeling = QgsVectorLayerSimpleLabeling(self.label_settings)
         self.layer.setLabeling(layer_labeling)
-        self.layer.renderer().symbol().setColor(Qt.gray)
+        self.layer.renderer().symbol().setColor(QColor(220,220,220))
         
         # select tool needs a vector layer assigned to it
         self.toolSelect.setLayer(self.layer)
@@ -209,7 +209,7 @@ class MapWindow(QMainWindow):
         self.selected_features.clear()
         
     def finishedSelection(self):
-        """Activated when user clicks 'returns selection'. Closes window
+        """Activated when user clicks 'return selection'. Closes window
             and emits signal to indicate the job is finished"""
         self.close()
         self.finished.emit()
