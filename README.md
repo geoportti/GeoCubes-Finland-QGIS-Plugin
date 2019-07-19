@@ -1,6 +1,7 @@
 # Geocubes Finland - QGIS plugin
 A QGIS plugin to access raster data on GeoCubes Finland, maintained by Finnish Geospatial Research Institute (FGI).
- [ Esittely suomeksi alla ]
+
+[Esittely suomeksi alla](https://github.com/tleppamaki/Geocubes-Finland-QGIS-plugin#mik%C3%A4-on-geocubes-finland)
 
 ## What is Geocubes Finland?
 Geocubes Finland is a harmonised, multi-resolution raster geodata repository. The repository contains several key national datasets on themes such as elevation, land cover and forestry. Read more: [Geocubes Finland main site](http://86.50.168.160/geocubes) and [description on usage and citing](https://github.com/geoportti/GeoCubes).
@@ -28,7 +29,7 @@ Edellämainittu tarkoittaa, että **rasteridata on helpommin saatavilla ja käyt
 Geocubes Finland on suunnattu suomalaisen tutkijayhteisön tarpeisiin, mutta palvelu ja sen data ovat avoimesti käytettävissä. Katsothan [viittausohjeet](https://github.com/geoportti/GeoCubes#usage-and-citing), jos käytät Geocubes Finlandia työssäsi.
 
 ## Geocubes Finland QGIS-laajennos
-Tällä QGIS 3.x -laajennoksella edellämainittujen ominaisuuksien käyttö sujuu vaivatta. Käyttäjän pitää valita kolme keskeistä parametriä: ladattavat tasot, rajaus ja rasteriresoluutio. Rajauksen voi tehdä suorakulmiolla (bounding box), hallinnollisilla alueilla tai piirtää mieleisensä polygonin. Tiedostomuodoksi voi valita joko GeoTIFF- tai VRT-tiedoston. Taso lisätään latauksen jälkeen QGIS:iin jatkoanalyysiä varten. Tiedostoja voi käyttää joko Geocubesin palvelimilta tai tallentaa paikallisesti: ensimmäinen soveltuu pienempien tiedostojen nopeisiin analyyseihin ja jälkimmäinen on hyödyllinen suuremmissa tiedostoko'oissa.
+Tällä QGIS 3.x -laajennoksella edellämainittujen ominaisuuksien käyttö sujuu vaivatta. Käyttäjän tarvitsee valita kolme keskeistä parametriä: ladattavat tasot, rajaus ja rasteriresoluutio. Rajauksen voi tehdä suorakulmiolla (*bounding box*), hallinnollisilla alueilla tai piirtää mieleisensä polygonin. Tiedostomuodoksi voi valita joko GeoTIFF- tai VRT-tiedoston. Taso lisätään latauksen jälkeen QGIS:iin jatkoanalyysiä varten. Tiedostoja voi käyttää joko Geocubesin palvelimilta tai tallentaa paikallisesti: ensimmäinen soveltuu pienempien tiedostojen nopeisiin analyyseihin ja jälkimmäinen on hyödyllinen suuremmissa tiedostoko'oissa.
 #### Laajennoksen asentaminen
 - Lataa laajennos zip-tiedostona repositorion yläkulmasta kohdasta *Clone or download* -> *Download ZIP*
 - Avaa QGIS 3 -versiosi, klikkaa *Plugins*-valikko ja valitse *Manage and install plugins*
