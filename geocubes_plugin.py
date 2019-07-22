@@ -354,7 +354,8 @@ class GeocubesPlugin:
         # start with only 1 row, add more as needed
         self.table.setRowCount(1)
         # set headers for all 4 columns
-        self.table.setHorizontalHeaderLabels(['Label', 'Year', 'Max resolution (m)', 'Select layer'])
+        self.table.setHorizontalHeaderLabels(['Dataset', 'Year', 
+                                         'Max resolution (m)', 'Select layer'])
 
         # loop through all the datasets
         for i, dataset in enumerate(datasets):
@@ -401,7 +402,7 @@ class GeocubesPlugin:
                 necessary for the queries. Key is stored as a string and 
                 value as a tuple"""
                 key = label + ";" + year
-                value = (name, bit_depth, year)
+                value = (name, bit_depth, maxres, year)
                 
                 self.datasets_all[key] = value
                 
@@ -585,7 +586,21 @@ class GeocubesPlugin:
                 # accessing values, which are stored as tuples
                 name = parameter[0]
                 bit_depth = parameter[1]
-                year = parameter[2]
+                maxres = parameter[2]
+                year = parameter[3]
+                
+                # check if selected resolution is higher than the maximum of
+                # this layer. E.g. if user tries to download km10 with 2 m resolution.
+                # Set resolution for this download loop to maximum allowed 
+                # (usually 10 meters)
+                if int(self.resolution) < int(maxres):
+                    QMessageBox.information(self.dlg, 'Selected resolution not'+
+                                ' suitable for layer ' +name, 'Selected resolution (' 
+                                + self.resolution +' m) is higher than the maximum'
+                                +' available resolution for this layer (' +
+                                maxres + ' m). Download resolution set to '+ maxres +
+                                ' m for this layer.')
+                    self.resolution = maxres
                 
                 # if a tif image is downloaded, estimate its file size
                 # should the user choose to stop the download, return to the
@@ -594,7 +609,7 @@ class GeocubesPlugin:
                     proceed = self.estimateFileSize(bit_depth, name)
                     if not proceed:
                         self.sendWarning("Download stopped", "Download of " +
-                                         name + " layer was stopped by user.",
+                                         name + " layer was stopped by the user.",
                                          8, warning=False)
                         continue
                     
@@ -618,10 +633,12 @@ class GeocubesPlugin:
                 else:
                     self.addLayerToQgis(data_url, name=name, year=year, label=name)
                     
+                self.setResolution()
+                    
             # once all layers are downloaded, inform how many were succesful
             data_text = (str(self.successful_layers) + "/" +
                                 str(len(dataset_parameters))+ " layer(s)" +
-                                " successfully downloaded")
+                                " downloaded")
             self.sendWarning("Download complete", data_text, 9, warning=False)
 
             self.busy_dialog.close()
@@ -686,7 +703,7 @@ class GeocubesPlugin:
             split = item.split('|')
             name = split[0]
             
-            # building the expression. Follows sql standars, I think?
+            # building the expression. Follows sql standards, I think?
             expression = QgsExpression("\"{}\"='{}'".format(column_name, name))
             # get features with the expression – should return just one
             iterator = self.vlayer.getFeatures(QgsFeatureRequest(expression))
