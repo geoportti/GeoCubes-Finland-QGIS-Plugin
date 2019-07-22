@@ -28,10 +28,10 @@ Edellämainittu tarkoittaa, että **rasteridata on helpommin saatavilla ja käyt
 #### Kenelle palvelu on suunnattu?
 Geocubes Finland on suunnattu suomalaisen tutkijayhteisön tarpeisiin, mutta palvelu ja sen data ovat avoimesti käytettävissä. Katsothan [viittausohjeet](https://github.com/geoportti/GeoCubes#usage-and-citing), jos käytät Geocubes Finlandia työssäsi.
 
-## Geocubes Finland QGIS-laajennos
-Tällä QGIS 3.x -laajennoksella edellämainittujen ominaisuuksien käyttö sujuu vaivatta. Käyttäjän tarvitsee valita kolme keskeistä parametriä: ladattavat tasot, rajaus ja rasteriresoluutio. Rajauksen voi tehdä suorakulmiolla (*bounding box*), hallinnollisilla alueilla tai piirtää mieleisensä polygonin. Tiedostomuodoksi voi valita joko GeoTIFF- tai VRT-tiedoston. Taso lisätään latauksen jälkeen QGIS:iin jatkoanalyysiä varten. Tiedostoja voi käyttää joko Geocubesin palvelimilta tai tallentaa paikallisesti: ensimmäinen soveltuu pienempien tiedostojen nopeisiin analyyseihin ja jälkimmäinen on hyödyllinen suuremmissa tiedostoko'oissa.
-#### Laajennoksen asentaminen
-- Lataa laajennos zip-tiedostona repositorion yläkulmasta kohdasta *Clone or download* -> *Download ZIP*
+## Geocubes Finland QGIS-laajennus
+Tällä QGIS 3.x -laajennuksella edellämainittujen ominaisuuksien käyttö sujuu vaivatta. Käyttäjän tarvitsee valita kolme keskeistä parametriä: ladattavat tasot, rajaus ja rasteriresoluutio. Rajauksen voi tehdä suorakulmiolla (*bounding box*), hallinnollisilla alueilla tai piirtää mieleisensä polygonin. Tiedostomuodoksi voi valita joko GeoTIFF- tai VRT-tiedoston. Taso lisätään latauksen jälkeen QGIS:iin jatkoanalyysiä varten. Tiedostoja voi käyttää joko Geocubesin palvelimilta tai tallentaa paikallisesti: ensimmäinen soveltuu pienempien tiedostojen nopeisiin analyyseihin ja jälkimmäinen on hyödyllinen suuremmissa tiedostoko'oissa.
+#### Laajennuksen asentaminen
+- Lataa laajennus zip-tiedostona repositorion yläkulmasta kohdasta *Clone or download* -> *Download ZIP*
 - Avaa QGIS 3 -versiosi, klikkaa *Plugins*-valikko ja valitse *Manage and install plugins*
 - Valitse vasemmalta *Install from ZIP* ja etsi äsken ladattu tiedosto
 #### Löysin bugin ja/tai tahdon ehdottaa uutta ominaisuutta. Mitä teen?
