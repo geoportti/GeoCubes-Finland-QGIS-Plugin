@@ -553,12 +553,13 @@ class GeocubesPlugin:
         
         # size in bits -> to bytes -> to kB -> to MB
         size_in_mb = size_in_bits/8/1024/1024
+        size_limit = 100
         
-        if size_in_mb > 100:
+        if size_in_mb > size_limit:
             buttonReply = QMessageBox.question(self.dlg, 'File size warning', 
                         "Download for layer " + name + " is estimated to be " +
-                        str(int(size_in_mb)) + " MB, which is over the suggested limit. " +
-                        "Download might take a long time or the layer might make" + 
+                        str(int(size_in_mb)) + " MB, which is over the suggested limit (" +
+                        +size_limit+" MB). Download might take a long time or the layer might make" + 
                         " QGIS run slowly or crash. Do you want to proceed with the download?",
                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if buttonReply == QMessageBox.Yes:
@@ -1122,9 +1123,9 @@ class GeocubesPlugin:
             self.admin_radio_button = self.dlg.adminRadioButton
             self.poly_radio_button = self.dlg.polyRadioButton
             
-            self.bbox_radio_button.clicked.connect(self.bboxCropSelected)
-            self.admin_radio_button.clicked.connect(self.adminAreaCropSelected)
-            self.poly_radio_button.clicked.connect(self.polygonCropSelected)
+            self.bbox_radio_button.toggled.connect(self.bboxCropSelected)
+            self.admin_radio_button.toggled.connect(self.adminAreaCropSelected)
+            self.poly_radio_button.toggled.connect(self.polygonCropSelected)
             
             self.polygon_list = []
             
@@ -1198,6 +1199,8 @@ class GeocubesPlugin:
         self.save_temp_button.setChecked(True)
         
         self.gtiff_radio_button.setChecked(True)
+        
+        self.bbox_radio_button.setChecked(True)
         
         self.areas_box.clear()
         
