@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
                              QMessageBox)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
                        Qgis, QgsVectorLayer, QgsFileDownloader, QgsExpression,
-                       QgsFeatureRequest)
+                       QgsFeatureRequest, QgsMessageLog)
 from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
 
 # Initialize Qt resources from file resources.py
@@ -232,7 +232,7 @@ class GeocubesPlugin:
         y_meter = ymax-ymin
         
         # this is arbitrary. Increase divider value to make the formula suggest
-        # smaller resolutions easier and vise versa.
+        # higher resolutions (=smaller values) easier and vise versa.
         divider = 1200
         optimal_resolution = (x_meter/divider) + (y_meter/divider)
 
@@ -306,6 +306,33 @@ class GeocubesPlugin:
             response_string = response.content.decode("utf-8")
             
             return response_string
+        
+    def bboxCropSelected(self):
+        self.extent_box.setEnabled(True)
+        self.admin_areas_box.setEnabled(False)
+        self.areas_box.setEnabled(False)
+        self.map_select_button.setEnabled(False)
+        self.poly_draw_button.setEnabled(False)
+        self.crop_method_text = "Cropping with a bounding box"
+        self.updateCountText()
+        
+    def adminAreaCropSelected(self):
+        self.extent_box.setEnabled(False)
+        self.admin_areas_box.setEnabled(True)
+        self.areas_box.setEnabled(True)
+        self.map_select_button.setEnabled(True)
+        self.poly_draw_button.setEnabled(False)
+        self.crop_method_text = "Cropping with administrative areas"
+        self.updateCountText()
+        
+    def polygonCropSelected(self):
+        self.extent_box.setEnabled(False)
+        self.admin_areas_box.setEnabled(False)
+        self.areas_box.setEnabled(False)
+        self.map_select_button.setEnabled(False)
+        self.poly_draw_button.setEnabled(True)
+        self.crop_method_text = "Cropping with a drawn polygon"
+        self.updateCountText()
         
     def requestValidity(self, s_code, request_type):
         """Checks if the network request errored and shows an informative msg
@@ -442,10 +469,12 @@ class GeocubesPlugin:
             res_text = "Resolution set to " + self.resolution + " m"
         if len(self.datasets_to_download) == 1:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
-                                          ' layer selected | ' + res_text)
+                                          ' layer selected | ' + res_text + ' | ' +
+                                          self.crop_method_text)
         else:
             self.layer_count_text.setText(str(len(self.datasets_to_download))+
-                                          ' layers selected | ' + res_text)
+                                          ' layers selected | ' + res_text + ' | ' +
+                                          self.crop_method_text)
         
     def checkboxState(self, cbox):
         """itemChanged signal passes the checkbox (cbox). This function
@@ -566,6 +595,8 @@ class GeocubesPlugin:
             self.sendWarning("Missing data", "Please select resolution!", 8)
         elif self.admin_radio_button.isChecked() and len(self.areas_box.checkedItems()) == 0:
             self.sendWarning("Missing selection","Please select admin areas!", 8)
+        elif self.poly_radio_button.isChecked() and not self.polygon_list:
+            self.sendWarning("Invalid or no polygon","Please redraw polygon", 8)
         elif (not self.admin_radio_button.isChecked() and not self.bbox_radio_button.isChecked() 
         and not self.poly_radio_button.isChecked()):
             self.sendWarning("Crop method missing","Please select one of the "+
@@ -623,6 +654,9 @@ class GeocubesPlugin:
                 else:
                     data_url = self.formAdminUrl(name, year)
                 
+                QgsMessageLog.logMessage('Url for layer ' + name + ': ' + data_url,
+                                         'geocubes_plugin',
+                                         Qgis.Info)
                 if self.save_disk_button.isChecked():
                     if self.gtiff_radio_button.isChecked():
                         file_format = 'tif'
@@ -632,7 +666,7 @@ class GeocubesPlugin:
                     
                 else:
                     self.addLayerToQgis(data_url, name=name, year=year, label=name)
-                    
+                
                 self.setResolution()
                     
             # once all layers are downloaded, inform how many were succesful
@@ -653,7 +687,11 @@ class GeocubesPlugin:
             
         # creating raster layer by passing the url and giving
         # name and year as layer names
-        raster_layer = QgsRasterLayer(url, ''.join([label, '_', year]))
+        layer_name = label + '_' + year
+        if self.vrt_radio_button.isChecked() and name == label:
+            layer_name = layer_name + '_vrt'
+        
+        raster_layer = QgsRasterLayer(url, layer_name)
                     
         # if data query fails, inform user. If not, add to Qgis
         if not raster_layer.isValid():
@@ -942,20 +980,14 @@ class GeocubesPlugin:
         Returns a rectangle object"""
         output_extent = self.extent_box.outputExtent()
         return output_extent
-    
-        """
-        QgsMessageLog.logMessage(output_extent,
-                                 'geocubes_plugin',
-                                 Qgis.Info)
-        """
         
     def questionCrs(self):
         """Called if QGIS' CRS isn't EPSG:3067. Asks the user to change destination
             CRS and changes if allowed. If refused, warns the user."""
             
         buttonReply = QMessageBox.question(self.dlg, 'Incorrect CRS set', 
-                        "Some features of this plugin require that Coordinate "+
-                        "Reference System is set to EPSG:3067 to function correctly."+
+                        "To function correctly, some features of this plugin "+
+                        "require that Coordinate Reference System is set to EPSG:3067."+
                         " Do you want to change the current project CRS to EPSG:3067?",
                         QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if buttonReply == QMessageBox.Yes:
@@ -1089,6 +1121,14 @@ class GeocubesPlugin:
             self.bbox_radio_button = self.dlg.bboxRadioButton
             self.admin_radio_button = self.dlg.adminRadioButton
             self.poly_radio_button = self.dlg.polyRadioButton
+            
+            self.bbox_radio_button.clicked.connect(self.bboxCropSelected)
+            self.admin_radio_button.clicked.connect(self.adminAreaCropSelected)
+            self.poly_radio_button.clicked.connect(self.polygonCropSelected)
+            
+            self.polygon_list = []
+            
+            self.crop_method_text = "No crop method selected"
             
             self.gtiff_radio_button = self.dlg.gtiffRadioButton
             self.vrt_radio_button = self.dlg.vrtRadioButton

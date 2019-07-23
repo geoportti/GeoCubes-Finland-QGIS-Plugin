@@ -157,6 +157,9 @@
            </item>
            <item>
             <widget class="QgsExtentGroupBox" name="mExtentGroupBox">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
                <horstretch>0</horstretch>
@@ -325,6 +328,9 @@
              </item>
              <item row="7" column="1">
               <widget class="QPushButton" name="polyDrawButton">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
                <property name="minimumSize">
                 <size>
                  <width>200</width>
@@ -421,7 +427,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Get optimal resolution</string>
+                <string>Get Suggested Resolution</string>
                </property>
               </widget>
              </item>
@@ -486,7 +492,7 @@
               <string>Adds the data to QGIS as layers. To save layers locally, select &quot;Export&quot; and &quot;Save as...&quot;</string>
              </property>
              <property name="text">
-              <string>Use as temp layer(s)</string>
+              <string>Add layer(s) directly to QGIS</string>
              </property>
             </widget>
            </item>
@@ -573,7 +579,7 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>120</width>
+          <width>130</width>
           <height>60</height>
          </size>
         </property>
@@ -597,7 +603,7 @@
        <widget class="QPushButton" name="closeButton">
         <property name="maximumSize">
          <size>
-          <width>90</width>
+          <width>105</width>
           <height>40</height>
          </size>
         </property>
