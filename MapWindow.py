@@ -11,7 +11,7 @@ from qgis.PyQt.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QColor
 from qgis.core import (QgsPalLayerSettings, QgsVectorLayerSimpleLabeling,
                        QgsTextFormat, QgsTextBufferSettings, QgsProject,
-                       QgsVectorLayer)
+                       QgsVectorLayer, QgsRasterLayer)
 from qgis.gui import (QgsMapCanvas, QgsMapToolPan, QgsMapToolIdentifyFeature)
 
 
@@ -163,15 +163,21 @@ class MapWindow(QMainWindow):
         self.canvas.setExtent(self.layer.extent())
         
         # set layer to canvas
+        """
         url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
         "&request=GetFeature&typename=ogiir:maakuntajako_2018_4500k&pagingEnabled=true")
         self.bg_layer = QgsVectorLayer(url, "BACKGROUND-REMOVE", "WFS")
+        """
+        self.bg_layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
+                       "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
+                       "png&layers=taustakartta&styles=default&tileMatrixSet=GRIDI-FIN", 
+                       'GEOCUBES BG-LAYER - TO BE REMOVED', 'wms')
 
         if self.bg_layer.isValid():
-            self.bg_layer.setLabelsEnabled(True)
-            layer_labeling = QgsVectorLayerSimpleLabeling(self.label_settings)
-            self.bg_layer.setLabeling(layer_labeling)
-            self.bg_layer.renderer().symbol().setColor(Qt.gray)
+            #self.bg_layer.setLabelsEnabled(True)
+            #layer_labeling = QgsVectorLayerSimpleLabeling(self.label_settings)
+            #self.bg_layer.setLabeling(layer_labeling)
+            #self.bg_layer.renderer().symbol().setColor(Qt.gray)
             QgsProject.instance().addMapLayer(self.bg_layer, False)
             self.canvas.setLayers([self.layer, self.bg_layer])
         else:

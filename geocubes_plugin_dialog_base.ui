@@ -54,8 +54,8 @@
               <font>
                <family>Arial</family>
                <pointsize>9</pointsize>
-               <weight>75</weight>
-               <bold>true</bold>
+               <weight>50</weight>
+               <bold>false</bold>
               </font>
              </property>
              <property name="layoutDirection">
@@ -426,6 +426,9 @@
                  <height>16777215</height>
                 </size>
                </property>
+               <property name="toolTip">
+                <string>Runs a formula to detect the most suitable resolution for your currently selected crop layer</string>
+               </property>
                <property name="text">
                 <string>Get Suggested Resolution</string>
                </property>
@@ -504,7 +507,7 @@
               </font>
              </property>
              <property name="toolTip">
-              <string>Save layers to a local destination. Will add the layers to QGIS from this destination after saving.</string>
+              <string>Save layers to a local destination. You have the option to add the layers to QGIS from this destination after saving.</string>
              </property>
              <property name="text">
               <string>Save layer(s) to disk</string>

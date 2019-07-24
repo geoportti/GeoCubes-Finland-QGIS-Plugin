@@ -780,9 +780,17 @@ class GeocubesPlugin:
         
     def downloadSucceeded(self, file_path, file_name, layer_name):
         """If the downloader succeeds, the file has now been downloaded on disk
-            It will be added to QGIS as a layer via the file path given by user"""
+            User has the option to add this layer to QGIS. It will be added to 
+            QGIS as a layer via the file path given by user"""
         self.loop.exit()
-        self.addLayerToQgis(file_path, label=file_name, name=layer_name)
+        buttonReply = QMessageBox.question(self.dlg, 'Add layer to QGIS', 
+                        "Download succesful. Do you want to add layer "+ file_name +
+                        " to QGIS?",
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if buttonReply == QMessageBox.Yes:
+            self.addLayerToQgis(file_path, label=file_name, name=layer_name)
+        else:
+            self.successful_layers += 1
             
     def saveData(self, url, file_format, name):
         """This function first asks the user for a file name, then downloads
