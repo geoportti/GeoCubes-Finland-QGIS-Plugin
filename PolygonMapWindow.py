@@ -8,7 +8,7 @@ Created on Mon Jul  1 16:15:03 2019
 from qgis.PyQt.QtWidgets import QAction, QMainWindow, QSizePolicy
 from qgis.PyQt.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor
-from qgis.core import (QgsProject, QgsVectorLayer, QgsGeometry)
+from qgis.core import (QgsProject, QgsRasterLayer, QgsGeometry)
 from qgis.gui import (QgsMapCanvas, QgsMapToolPan,
                       QgsMapToolEmitPoint, QgsRubberBand)
 
@@ -102,13 +102,18 @@ class PolygonMapWindow(QMainWindow):
         
     def showCanvas(self):
         """Shows the map canvas with a vector background map for reference"""
-        
+        """
         url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
         "&request=GetFeature&typename=ogiir:maakuntajako_2018_4500k&pagingEnabled=true")
-        self.bg_layer = QgsVectorLayer(url, "BACKGROUND-REMOVE", "WFS")
+        #self.bg_layer = QgsVectorLayer(url, "BACKGROUND-REMOVE", "WFS")
+        """
+        self.bg_layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
+                       "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
+                       "png&layers=taustakartta&styles=default&tileMatrixSet=GRIDI-FIN", 
+                       'GEOCUBES BG-LAYER - TO BE REMOVED', 'wms')
         
         if self.bg_layer.isValid():
-            self.bg_layer.renderer().symbol().setColor(QColor(170,170,170))
+            #self.bg_layer.renderer().symbol().setColor(QColor(170,170,170))
             QgsProject.instance().addMapLayer(self.bg_layer, False)
             self.canvas.setExtent(self.bg_layer.extent())
             self.canvas.setLayers([self.bg_layer])
@@ -142,9 +147,9 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         # rubberband class gives the user visual feedback of the drawing
         self.rubberBand = QgsRubberBand(self.canvas, True)
         # setting up outline and fill color: both light blue
-        self.rubberBand.setColor(QColor(175,238,238))
+        self.rubberBand.setColor(QColor(235,36,21))
         # RGB color values, last value indicates transparency (0-255)
-        self.rubberBand.setFillColor(QColor(100,255,255,140))
+        self.rubberBand.setFillColor(QColor(255,79,66,140))
         self.rubberBand.setWidth(3)
         self.points = []
         # a flag indicating when a single polygon is finished

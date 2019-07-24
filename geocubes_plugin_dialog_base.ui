@@ -489,7 +489,7 @@
               </font>
              </property>
              <property name="toolTip">
-              <string>Adds the data to QGIS as layers. To save layers locally, select &quot;Export&quot; and &quot;Save as...&quot;</string>
+              <string>Add layers to QGIS without saving to disk. Streams data from Geocubes servers. To save layers locally, select &quot;Export&quot; and &quot;Save as...&quot;</string>
              </property>
              <property name="text">
               <string>Add layer(s) directly to QGIS</string>
@@ -504,7 +504,7 @@
               </font>
              </property>
              <property name="toolTip">
-              <string>Save layers locally. Will add the layers to QGIS after saving.</string>
+              <string>Save layers to a local destination. Will add the layers to QGIS from this destination after saving.</string>
              </property>
              <property name="text">
               <string>Save layer(s) to disk</string>

@@ -655,8 +655,8 @@ class GeocubesPlugin:
                 else:
                     data_url = self.formAdminUrl(name, year)
                 
-                QgsMessageLog.logMessage('Url for layer ' + name + ': ' + data_url,
-                                         'geocubes_plugin',
+                QgsMessageLog.logMessage('Download url for layer ' + name + ': ' + data_url,
+                                         'Geocubes plugin',
                                          Qgis.Info)
                 if self.save_disk_button.isChecked():
                     if self.gtiff_radio_button.isChecked():
