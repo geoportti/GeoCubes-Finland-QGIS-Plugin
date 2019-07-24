@@ -253,12 +253,12 @@ class GeocubesPlugin:
         
         self.setResolution()
         
-        self.updateCountText()
+        self.updateInfoText()
         
     def getExtents(self):
-        # see which crop type is selected, get appropriate bounding box
-        # extent box should always have values, others might not. 
-        # sends warning if values are absent. does nothing if crop method's not selected.
+        """Checks which crop type is selected, gets appropriate bounding box.
+        Extent box should always have values, others might not. 
+        Ext is empty if values are absent. Does nothing if crop method's not selected."""
         if self.bbox_radio_button.isChecked():
             ext = self.getBboxExtent()
             return ext
@@ -308,31 +308,38 @@ class GeocubesPlugin:
             return response_string
         
     def bboxCropSelected(self):
+        """Activated when the corresponding radio button is checked. Makes
+            only the selections that are currenly relevant available. For example
+            you only need the extent box to be active for a bbox crop."""
         self.extent_box.setEnabled(True)
         self.admin_areas_box.setEnabled(False)
         self.areas_box.setEnabled(False)
         self.map_select_button.setEnabled(False)
         self.poly_draw_button.setEnabled(False)
+        
+        # updating info text with the correct crop method
         self.crop_method_text = "Cropping with a bounding box"
-        self.updateCountText()
+        self.updateInfoText()
         
     def adminAreaCropSelected(self):
+        """See bboxCropSelected above"""
         self.extent_box.setEnabled(False)
         self.admin_areas_box.setEnabled(True)
         self.areas_box.setEnabled(True)
         self.map_select_button.setEnabled(True)
         self.poly_draw_button.setEnabled(False)
         self.crop_method_text = "Cropping with administrative areas"
-        self.updateCountText()
+        self.updateInfoText()
         
     def polygonCropSelected(self):
+        """See bboxCropSelected above"""
         self.extent_box.setEnabled(False)
         self.admin_areas_box.setEnabled(False)
         self.areas_box.setEnabled(False)
         self.map_select_button.setEnabled(False)
         self.poly_draw_button.setEnabled(True)
         self.crop_method_text = "Cropping with a drawn polygon"
-        self.updateCountText()
+        self.updateInfoText()
         
     def requestValidity(self, s_code, request_type):
         """Checks if the network request errored and shows an informative msg
@@ -451,18 +458,21 @@ class GeocubesPlugin:
         self.table.itemChanged.connect(self.checkboxState)
         
         # add or subtract from the layer count
-        self.table.itemChanged.connect(self.updateCountText)
+        self.table.itemChanged.connect(self.updateInfoText)
         
     def deselectDatasets(self):
         """Nullifies selections on the datasets table."""
         for row_id in range(self.table.rowCount()):
+            # checkbox is on the fourth column counting from left
             cbox = self.table.item(row_id, 3)
+            # 0 = not selected
             cbox.setCheckState(0)
             
-        self.updateCountText
+        self.updateInfoText
         
-    def updateCountText(self):
-        """Activated when checkbox states change. Updates the count accordingly."""
+    def updateInfoText(self):
+        """Updates info text with current information. Called when any of these
+        (resolution, crop method or layer count) changes."""
         if not self.resolution:
             res_text = "No resolution selected"
         else:
@@ -525,7 +535,7 @@ class GeocubesPlugin:
         """Called when datasets are fetched more than once, which empties the list.
            Also updates layer count text"""
         self.datasets_to_download.clear()
-        self.updateCountText()
+        self.updateInfoText()
     
     def estimateFileSize(self, bit_depth, name):
         """Is activated when user downloads datasets. Estimates the file size
@@ -546,6 +556,7 @@ class GeocubesPlugin:
         ymin = ext.yMinimum()
         ymax = ext.yMaximum()
         
+        # pixelcount = (x-axis / resolution) * (y-axis/resolution)
         pixelcount = (xmax-xmin)/int(self.resolution) * ((ymax-ymin)/ int(self.resolution))
         
         # times radiometric resolution
@@ -557,9 +568,9 @@ class GeocubesPlugin:
         
         if size_in_mb > size_limit:
             buttonReply = QMessageBox.question(self.dlg, 'File size warning', 
-                        "Download for layer " + name + " is estimated to be " +
-                        str(int(size_in_mb)) + " MB, which is over the suggested limit (" +
-                        +size_limit+" MB). Download might take a long time or the layer might make" + 
+                        "Raw file size of layer " + name + " is estimated to be " +
+                        str(int(size_in_mb)) + " MB, which is over the suggested limit ("+
+                        str(size_limit)+" MB). Download might take a long time or the layer might make" + 
                         " QGIS run slowly or crash. Do you want to proceed with the download?",
                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if buttonReply == QMessageBox.Yes:
@@ -678,7 +689,7 @@ class GeocubesPlugin:
 
             self.busy_dialog.close()
             self.deselectDatasets()
-            self.updateCountText()
+            self.updateInfoText()
             
     def addLayerToQgis(self, url, name="", year="", label="geocubes_raster_layer"):
         """This function receives an url address to access the files at the
@@ -1096,7 +1107,7 @@ class GeocubesPlugin:
             self.resolution_box = self.dlg.resolutionBox
             self.resolution_box.activated.connect(self.setResolution)
             
-            self.resolution_box.activated.connect(self.updateCountText)
+            self.resolution_box.activated.connect(self.updateInfoText)
             
             self.data_button = self.dlg.getDataButton
             self.data_button.clicked.connect(self.getData)
@@ -1192,7 +1203,7 @@ class GeocubesPlugin:
         
         
         # set default text
-        self.updateCountText()
+        self.updateInfoText()
         
         #self.bbox_radio_button.setChecked(True)
         
