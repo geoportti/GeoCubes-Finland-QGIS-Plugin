@@ -146,7 +146,7 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         QgsMapToolEmitPoint.__init__(self, self.canvas)
         # rubberband class gives the user visual feedback of the drawing
         self.rubberBand = QgsRubberBand(self.canvas, True)
-        # setting up outline and fill color: both light blue
+        # setting up outline and fill color: both red
         self.rubberBand.setColor(QColor(235,36,21))
         # RGB color values, last value indicates transparency (0-255)
         self.rubberBand.setFillColor(QColor(255,79,66,140))
@@ -206,6 +206,7 @@ class PolygonMapTool(QgsMapToolEmitPoint):
             # a polygon is created and added to the map for visual purposes
             map_polygon = QgsGeometry.fromPolygonXY([self.points])
             self.rubberBand.setToGeometry(map_polygon)
+            # get the bounding box of this new polygon
             self.poly_bbox = self.rubberBand.asGeometry().boundingBox()
         else:
             self.finished = True

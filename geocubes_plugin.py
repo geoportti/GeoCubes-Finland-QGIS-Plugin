@@ -39,6 +39,7 @@ from .geocubes_plugin_dialog import GeocubesPluginDialog
 import os.path, requests, re
 from .MapWindow import MapWindow
 from .PolygonMapWindow import PolygonMapWindow
+from .ExploreMapWindow import ExploreMapWindow
 
 
 class GeocubesPlugin:
@@ -373,6 +374,7 @@ class GeocubesPlugin:
         # remove the connections. If none exist, pass
         try: self.table.itemChanged.disconnect() 
         except Exception: pass
+    
 
         # get a list of datasets
         dataset_string = self.getDatasets()
@@ -381,6 +383,7 @@ class GeocubesPlugin:
         if not dataset_string:
             return
         
+        self.explore_data_button.setEnabled(True)
         # datasets are divided by semicolons: split at semicolons
         datasets = dataset_string.split(';')
 
@@ -935,6 +938,9 @@ class GeocubesPlugin:
     def openPolyMapWindow(self):
         self.poly_map_canvas.showCanvas()
         
+    def openExploreMapWindow(self):
+        self.explore_map_canvas.showCanvas(self.datasets_all)
+        
     def getMapPolygon(self):
         """Activated when signal indicating polygon drawing is finished is emitted.
             Gets the list of point values and does a simple but hopefully exhaustive
@@ -1117,6 +1123,14 @@ class GeocubesPlugin:
             
             self.resolution_box.activated.connect(self.updateInfoText)
             
+            self.map_canvas = MapWindow()
+            self.map_canvas.finished.connect(self.mapSelectionToBox)
+            
+            self.poly_map_canvas = PolygonMapWindow()
+            self.poly_map_canvas.finished.connect(self.getMapPolygon)
+            
+            self.explore_map_canvas = ExploreMapWindow()
+            
             self.data_button = self.dlg.getDataButton
             self.data_button.clicked.connect(self.getData)
             
@@ -1125,6 +1139,9 @@ class GeocubesPlugin:
             
             self.poly_draw_button = self.dlg.polyDrawButton
             self.poly_draw_button.clicked.connect(self.openPolyMapWindow)
+            
+            self.explore_data_button = self.dlg.exploreDataButton
+            self.explore_data_button.clicked.connect(self.openExploreMapWindow)
             
             self.optimal_res_button = self.dlg.optimalResolutionButton
             self.optimal_res_button.clicked.connect(self.setOptimalResolution)
@@ -1177,11 +1194,6 @@ class GeocubesPlugin:
             # user selects an admin area
             self.vlayer = False
             
-            self.map_canvas = MapWindow()
-            self.map_canvas.finished.connect(self.mapSelectionToBox)
-            
-            self.poly_map_canvas = PolygonMapWindow()
-            self.poly_map_canvas.finished.connect(self.getMapPolygon)
             
             # an empty dictionary to house all the fetched datasets
             self.datasets_all = {}
