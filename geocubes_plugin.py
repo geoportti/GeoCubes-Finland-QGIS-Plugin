@@ -1115,6 +1115,9 @@ class GeocubesPlugin:
             self.extent_box = self.dlg.mExtentGroupBox
             self.proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
             #self.extent_box.extentChanged.connect(self.extentResolution)
+            
+            # current base url (shared by all queries) of the Geocubes project. Modify if url changes
+            self.url_base = "http://86.50.168.160/geocubes"
 
             
             # box housing a drop-down list of possible raster resolutions
@@ -1129,7 +1132,7 @@ class GeocubesPlugin:
             self.poly_map_canvas = PolygonMapWindow()
             self.poly_map_canvas.finished.connect(self.getMapPolygon)
             
-            self.explore_map_canvas = ExploreMapWindow()
+            self.explore_map_canvas = ExploreMapWindow(self.url_base)
             
             self.data_button = self.dlg.getDataButton
             self.data_button.clicked.connect(self.getData)
@@ -1208,9 +1211,6 @@ class GeocubesPlugin:
             self.resolution_box.addItems(str(resolution) for resolution in resolutions)
             
         """Code below is ran every time the plugin is restarted but Qgis isn't"""
-        
-        # current base url (shared by all queries) of the Geocubes project. Modify if url changes
-        self.url_base = "http://86.50.168.160/geocubes"
         
         # set the box empty by default
         self.resolution_box.setCurrentIndex(-1)
