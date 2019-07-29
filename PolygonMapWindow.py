@@ -155,6 +155,7 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         # a flag indicating when a single polygon is finished
         self.finished = False
         self.poly_bbox = False
+        self.double_click_flag = False
         self.reset()
       
     def reset(self):
@@ -169,10 +170,18 @@ class PolygonMapTool(QgsMapToolEmitPoint):
             self.reset()
         if (e.key() == 16777220):
             self.finishPolygon()
+            
+    def canvasDoubleClickEvent(self, e):
+        self.double_click_flag = True
+        self.finishPolygon()
 
-    def canvasPressEvent(self, e):
+    def canvasReleaseEvent(self, e):
         """Activated when user clicks on the canvas. Gets coordinates, draws
         them on the map and adds to the list of points."""
+        if self.double_click_flag:
+            self.double_click_flag = False
+            return
+        
         # if the finished flag is activated, the canvas will be must be reset
         # for a new polygon
         if self.finished:
@@ -184,9 +193,7 @@ class PolygonMapTool(QgsMapToolEmitPoint):
         self.rubberBand.addPoint(self.click_point, True)
         self.points.append(self.click_point)
         self.rubberBand.show()
-      
-    def canvasDoubleClickEvent(self, e):
-        self.finishPolygon()
+
         
     def finishPolygon(self):
         """Activated when by user or when the map window is closed without connecting

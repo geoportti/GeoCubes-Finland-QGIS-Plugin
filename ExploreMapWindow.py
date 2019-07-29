@@ -164,9 +164,14 @@ class ExploreMapWindow(QMainWindow):
             Data is queried either from the currently selected layer or, in the
             case on the background map, from all available layers."""
         key = self.layer_box.currentText()
+        resolution = 10
         
         if not key:
             return
+        # this layer lacks data on for much of Finland on the higher resolutions
+        # hence, an exception is made
+        if key == "Pintamaalaji;2018":
+            resolution = 100
         if key == "Taustakartta":
             layer_name = "all"
             year = "2015"
@@ -174,7 +179,7 @@ class ExploreMapWindow(QMainWindow):
             value = self.all_datasets[key]
             layer_name, year = value[0], value[3]
         
-        url = (self.url_base + "/legend/100/" +
+        url = (self.url_base + "/legend/"+str(resolution)+"/" +
                      layer_name +"/" + formatted_point
                     + "/" + year)
         
@@ -212,9 +217,9 @@ class ExploreMapWindow(QMainWindow):
         if self.bg_layer.isValid():
             QgsProject.instance().addMapLayer(self.bg_layer, False)
             self.canvas.setLayers([self.bg_layer])
-            # zoom to the full extent of the map if layer is started for the first time
+            # zoom to the full extent of the map if canvas is started for the first time
             if self.first_start:
-                self.canvas.setExtent(self.bg_layer.extent())
+                self.zoomToExtent()
                 self.first_start = False
         
     def cancel(self):

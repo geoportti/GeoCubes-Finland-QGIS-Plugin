@@ -24,9 +24,9 @@
 from PyQt5.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, 
                           Qt, QUrl, QEventLoop, QFileInfo)
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QAbstractScrollArea,
-                             QSizePolicy, QFileDialog, QTableWidget, QHeaderView,
-                             QMessageBox)
+from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QSizePolicy, QFileDialog, 
+                             QTableWidget, QHeaderView, QMessageBox, QInputDialog,
+                             QLineEdit)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
                        Qgis, QgsVectorLayer, QgsFileDownloader, QgsExpression,
                        QgsFeatureRequest, QgsMessageLog)
@@ -568,7 +568,17 @@ class GeocubesPlugin:
         # size in bits -> to bytes -> to kB -> to MB
         size_in_mb = size_in_bits/8/1024/1024
         size_limit = 100
+        hard_limit = 1000
         
+        if size_in_mb > hard_limit:
+            QMessageBox.information(self.dlg, "File size over the limit", 
+                                    "The raw file size of layer " + name + 
+                                    " is estimated to be " + str(int(size_in_mb)) + 
+                                    " MB, which over the hard limit of " + str(hard_limit) + " MB. " +
+                                    "The layer can't therefore be downloaded. Please " +
+                                    "decrease resolution or crop area size and try again.")
+            return False
+            
         if size_in_mb > size_limit:
             buttonReply = QMessageBox.question(self.dlg, 'File size warning', 
                         "Raw file size of layer " + name + " is estimated to be " +
@@ -705,6 +715,13 @@ class GeocubesPlugin:
         layer_name = label + '_' + year
         if self.vrt_radio_button.isChecked() and name == label:
             layer_name = layer_name + '_vrt'
+            
+        if self.layer_name_config_cb.isChecked() and self.save_temp_button.isChecked():
+            input_name, ok_pressed = QInputDialog.getText(self.dlg, "Give layer a title for QGIS",
+                                                      "Write name of layer "+ label + " ("+year+ ")",
+                                                      QLineEdit.Normal, "")
+            if ok_pressed and input_name != "":
+                layer_name = input_name
         
         raster_layer = QgsRasterLayer(url, layer_name)
                     
@@ -803,7 +820,7 @@ class GeocubesPlugin:
         file_path, file_filter = QFileDialog.getSaveFileName(self.dlg,
                                 "Save " + name, filter='Selected format: (*.'+file_format+')')
         if not file_path:
-            self.sendWarning("Filename required", "Please write a valid filename", 10)
+            self.sendWarning("Filepath required", "Please write a valid filename", 10)
             return
         
         file_path_qt = QFileInfo(file_path)
@@ -1205,6 +1222,8 @@ class GeocubesPlugin:
             self.datasets_to_download = []
             
             self.poly_checkbox = self.dlg.polyCheckbox
+            
+            self.layer_name_config_cb = self.dlg.layerNamingConfigCheckBox
             
             # list of possible resolutions. Update if this changes
             resolutions = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
