@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QSizePolicy, QFileDialog
                              QLineEdit)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
                        Qgis, QgsVectorLayer, QgsFileDownloader, QgsExpression,
-                       QgsFeatureRequest, QgsMessageLog)
+                       QgsFeatureRequest, QgsMessageLog, QgsSettings)
 from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
 
 # Initialize Qt resources from file resources.py
@@ -195,6 +195,9 @@ class GeocubesPlugin:
         """Resolution is set to be the one currently in the box"""
         self.resolution = self.resolution_box.currentText()
         
+    def setFileSizeCap(self, file_size):
+        self.file_size_cap = file_size
+        
     def setAdminArea(self):
         self.admin_area = self.admin_areas_box.currentText()
         
@@ -279,7 +282,7 @@ class GeocubesPlugin:
         # request info from the server: if no response in 10 seconds, timeout
         response = requests.get(self.url_base + "/info/getDatasets", timeout=6)
         
-        # request status code indicates whether succesful: if not, return false
+        # request status code indicates whether successful: if not, return false
         # and warn user
         status_code = response.status_code
         
@@ -573,7 +576,6 @@ class GeocubesPlugin:
         
         # size in bits -> to bytes -> to kB -> to MB
         size_in_mb = size_in_bits/8/1024/1024
-        size_limit = 100
         hard_limit = 1000
         
         if size_in_mb > hard_limit:
@@ -585,11 +587,11 @@ class GeocubesPlugin:
                                     "decrease resolution or crop area size and try again.")
             return False
             
-        if size_in_mb > size_limit:
+        if size_in_mb > self.file_size_cap:
             buttonReply = QMessageBox.question(self.dlg, 'File size warning', 
                         "Raw file size of layer " + name + " is estimated to be " +
                         str(int(size_in_mb)) + " MB, which is over the suggested limit ("+
-                        str(size_limit)+" MB). Download might take a long time or the layer might make" + 
+                        str(self.file_size_cap)+" MB). Download might take a long time or the layer might make" + 
                         " QGIS run slowly or crash. Do you want to proceed with the download?",
                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if buttonReply == QMessageBox.Yes:
@@ -642,7 +644,7 @@ class GeocubesPlugin:
             # while datasets are downloaded, an indicator will be shown
             self.busy_dialog.show()
             
-            # a simple count of succesful downloads
+            # a simple count of successful downloads
             self.successful_layers = 0
             
             # 1 to n loops to download all selected data
@@ -668,13 +670,13 @@ class GeocubesPlugin:
                     self.resolution = maxres
                 
                 # if a tif image is downloaded, estimate its file size
-                # should the user choose to stop the download, return to the
-                # beginning of the loop
+                # should the user choose to stop the download or the size is over the hard limit 
+                # return to the beginning of the loop
                 if self.gtiff_radio_button.isChecked():
                     proceed = self.estimateFileSize(bit_depth, name)
                     if not proceed:
                         self.sendWarning("Download stopped", "Download of " +
-                                         name + " layer was stopped by the user.",
+                                         name + " layer was stopped due to download size.",
                                          8, warning=False)
                         continue
                     
@@ -813,7 +815,7 @@ class GeocubesPlugin:
             QGIS as a layer via the file path given by user"""
         self.loop.exit()
         buttonReply = QMessageBox.question(self.dlg, 'Add layer to QGIS', 
-                        "Download succesful. Do you want to add layer "+ file_name +
+                        "Download successful. Do you want to add layer "+ file_name +
                         " to QGIS?",
                         QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if buttonReply == QMessageBox.Yes:
@@ -1048,7 +1050,29 @@ class GeocubesPlugin:
         else:
             self.sendWarning("Incorrect CRS set", "Some features may not work"+
                              " or they function incorrectly", 7)
-    
+            
+    def updateSettings(self):
+        if not self.plugin_settings:
+            return
+        
+        if self.layer_name_config_cb.isChecked():
+            self.plugin_settings.setValue("ask_layer_name", 1)
+        else:
+            self.plugin_settings.setValue("ask_layer_name", 0)
+        
+        self.plugin_settings.setValue("file_size_cap", self.file_size_cap)
+        
+    def setDefaultSettings(self):
+        if not self.plugin_settings:
+            return
+        
+        self.plugin_settings.setValue("ask_layer_name", 0)
+        self.plugin_settings.setValue("file_size_cap", 100)
+        
+        self.max_file_size_spin_box.setValue(100)
+        self.layer_name_config_cb.setChecked(False)
+        
+        
     def formatPolygon(self):
         """Returns polygons in a url form suitable for the Geocubes API.
         Takes a list of PointXY's (tuples consisting of coordinate doubles) and
@@ -1224,6 +1248,9 @@ class GeocubesPlugin:
             # user selects an admin area
             self.vlayer = False
             
+            self.file_size_cap = 100
+            self.max_file_size_spin_box = self.dlg.maxFileSizeSpinBox
+            self.max_file_size_spin_box.valueChanged.connect(self.setFileSizeCap)
             
             # an empty dictionary to house all the fetched datasets
             self.datasets_all = {}
@@ -1234,6 +1261,12 @@ class GeocubesPlugin:
             self.poly_checkbox = self.dlg.polyCheckbox
             
             self.layer_name_config_cb = self.dlg.layerNamingConfigCheckBox
+            
+            self.config_save_button = self.dlg.configSaveButton
+            self.config_save_button.clicked.connect(self.updateSettings)
+            
+            self.default_setting_button = self.dlg.defaultSettingButton
+            self.default_setting_button.clicked.connect(self.setDefaultSettings)
             
             # list of possible resolutions. Update if this changes
             resolutions = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
@@ -1266,13 +1299,6 @@ class GeocubesPlugin:
         
         self.deselectDatasets()
         
-        # show the dialog
-        self.dlg.show()
-        
-        # if QGIS' CRS is not EPSG:3067, ask user if they want to change it
-        if self.canvas.mapSettings().destinationCrs() != self.proj_crs:
-            self.questionCrs()
-
         # canvas extent at the start
         og_extent = self.canvas.extent()
         
@@ -1283,3 +1309,26 @@ class GeocubesPlugin:
         
         # push current extent to the box
         self.updateExtent()
+        
+        try:
+            path_to_settings = self.plugin_dir + "\geocubes_plugin_settings.ini"
+            self.plugin_settings = QSettings(path_to_settings,
+                               QSettings.IniFormat)
+        except Exception:
+            self.plugin_settings = False
+            
+        if self.plugin_settings:
+            self.file_size_cap = self.plugin_settings.value("file_size_cap", 100)
+            self.ask_for_layer_name = self.plugin_settings.value("ask_layer_name", 0)
+            self.ask_for_layer_name = bool(int(self.ask_for_layer_name))
+            
+            self.max_file_size_spin_box.setValue(int(self.file_size_cap))
+            self.layer_name_config_cb.setChecked(self.ask_for_layer_name)
+
+        
+        # show the dialog
+        self.dlg.show()
+        
+        # if QGIS' CRS is not EPSG:3067, ask user if they want to change it
+        if QgsProject.instance().crs() != self.proj_crs:
+            self.questionCrs()

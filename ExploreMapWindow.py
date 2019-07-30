@@ -156,6 +156,7 @@ class ExploreMapWindow(QMainWindow):
             self.text_browser.setText(string)
         else:
             for text_string in strings:
+                # appending allows to insert multi-line texts
                 self.text_browser.append(text_string)
             
     
@@ -168,7 +169,8 @@ class ExploreMapWindow(QMainWindow):
         
         if not key:
             return
-        # this layer lacks data on for much of Finland on the higher resolutions
+        
+        # pintamaalaji lacks data on for much of Finland on the higher resolutions
         # hence, an exception is made
         if key == "Pintamaalaji;2018":
             resolution = 100
