@@ -1311,7 +1311,7 @@ class GeocubesPlugin:
         self.updateExtent()
         
         try:
-            path_to_settings = self.plugin_dir + "\geocubes_plugin_settings.ini"
+            path_to_settings = self.plugin_dir + "/geocubes_plugin_settings.ini"
             self.plugin_settings = QSettings(path_to_settings,
                                QSettings.IniFormat)
         except Exception:
