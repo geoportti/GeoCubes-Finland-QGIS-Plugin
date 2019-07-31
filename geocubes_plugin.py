@@ -716,7 +716,9 @@ class GeocubesPlugin:
             self.sendWarning("Download complete", data_text, 9, warning=False)
 
             self.busy_dialog.close()
-            self.deselectDatasets()
+            
+            if self.deselect_on_download_cb.isChecked():
+                self.deselectDatasets()
             self.updateInfoText()
             
     def addLayerToQgis(self, url, name="", year="", label="geocubes_raster_layer"):
@@ -818,14 +820,18 @@ class GeocubesPlugin:
             User has the option to add this layer to QGIS. It will be added to 
             QGIS as a layer via the file path given by user"""
         self.loop.exit()
-        buttonReply = QMessageBox.question(self.dlg, 'Add layer to QGIS', 
+        
+        if self.add_layer_without_asking_cb.isChecked:
+            self.addLayerToQgis(file_path, label=file_name, name=layer_name)
+        else:
+            buttonReply = QMessageBox.question(self.dlg, 'Add layer to QGIS', 
                         "Download successful. Do you want to add layer "+ file_name +
                         " to QGIS?",
                         QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-        if buttonReply == QMessageBox.Yes:
-            self.addLayerToQgis(file_path, label=file_name, name=layer_name)
-        else:
-            self.successful_layers += 1
+            if buttonReply == QMessageBox.Yes:
+                self.addLayerToQgis(file_path, label=file_name, name=layer_name)
+            else:
+                self.successful_layers += 1
             
     def saveData(self, url, file_format, name):
         """This function first asks the user for a file name, then downloads
@@ -1065,6 +1071,16 @@ class GeocubesPlugin:
             self.plugin_settings.setValue("ask_layer_name", 1)
         else:
             self.plugin_settings.setValue("ask_layer_name", 0)
+            
+        if self.deselect_on_download_cb.isChecked():
+            self.plugin_settings.setValue("deselect_on_download", 1)
+        else:
+            self.plugin_settings.setValue("deselect_on_download", 0)
+            
+        if self.deselect_on_download_cb.isChecked():
+            self.plugin_settings.setValue("add_to_qgis_prompt", 1)
+        else:
+            self.plugin_settings.setValue("add_to_qgis_prompt", 0)
         
         self.plugin_settings.setValue("file_size_cap", self.file_size_cap)
         
@@ -1076,9 +1092,13 @@ class GeocubesPlugin:
         
         self.plugin_settings.setValue("ask_layer_name", 0)
         self.plugin_settings.setValue("file_size_cap", 100)
+        self.plugin_settings.setValue("add_to_qgis_prompt", 0)
+        self.plugin_settings.setValue("deselect_on_download", 1)
         
         self.max_file_size_spin_box.setValue(100)
         self.layer_name_config_cb.setChecked(False)
+        self.add_layer_without_asking_cb.setChecked(False)
+        self.deselect_on_download_cb.setChecked(True)
         
         
     def formatPolygon(self):
@@ -1269,6 +1289,8 @@ class GeocubesPlugin:
             self.poly_checkbox = self.dlg.polyCheckbox
             
             self.layer_name_config_cb = self.dlg.layerNamingConfigCheckBox
+            self.add_layer_without_asking_cb = self.dlg.addLayerWithoutAskingCheckBox
+            self.deselect_on_download_cb = self.dlg.deselectAfterDownloadCheckBox
             
             self.config_save_button = self.dlg.configSaveButton
             self.config_save_button.clicked.connect(self.updateSettings)
@@ -1335,13 +1357,20 @@ class GeocubesPlugin:
             self.file_size_cap = self.plugin_settings.value("file_size_cap", 100)
             # settings can't handle booleans. therefore, this is stored as
             # 0 = unchecked & 1 = checked
-            self.ask_for_layer_name = self.plugin_settings.value("ask_layer_name", 0)
+            ask_name_setting = self.plugin_settings.value("ask_layer_name", 0)
+            add_to_qgis_setting = self.plugin_settings.value("add_to_qgis_prompt", 0)
+            deselect_on_download_setting = self.plugin_settings.value("deselect_on_download", 1)
+            
             # string mapped to int and then to boolean (since 0 = False)
-            self.ask_for_layer_name = bool(int(self.ask_for_layer_name))
+            ask_name_setting = bool(int(ask_name_setting))
+            add_to_qgis_setting = bool(int(add_to_qgis_setting))
+            deselect_on_download_setting = bool(int(deselect_on_download_setting))
             
             # set the values to boxes
             self.max_file_size_spin_box.setValue(int(self.file_size_cap))
-            self.layer_name_config_cb.setChecked(self.ask_for_layer_name)
+            self.layer_name_config_cb.setChecked(ask_name_setting)
+            self.add_layer_without_asking_cb.setChecked(add_to_qgis_setting)
+            self.deselect_on_download_cb.setChecked(deselect_on_download_setting)
 
         
         # show the dialog

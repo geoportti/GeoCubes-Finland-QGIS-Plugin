@@ -476,6 +476,12 @@
          </item>
          <item>
           <widget class="QCheckBox" name="layerNamingConfigCheckBox">
+           <property name="toolTip">
+            <string>Name each layer instead of the default name.</string>
+           </property>
+           <property name="whatsThis">
+            <string/>
+           </property>
            <property name="layoutDirection">
             <enum>Qt::LeftToRight</enum>
            </property>
@@ -485,9 +491,38 @@
           </widget>
          </item>
          <item>
+          <widget class="QCheckBox" name="addLayerWithoutAskingCheckBox">
+           <property name="toolTip">
+            <string>Add layer to QGIS without showing a prompt</string>
+           </property>
+           <property name="whatsThis">
+            <string/>
+           </property>
+           <property name="text">
+            <string>Add layers to QGIS without asking when saving to disk</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="deselectAfterDownloadCheckBox">
+           <property name="toolTip">
+            <string>Removes selections each time a download process goes through</string>
+           </property>
+           <property name="text">
+            <string>Deselect datasets after each download</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <layout class="QFormLayout" name="formLayout_2">
            <item row="1" column="0">
             <widget class="QLabel" name="label_5">
+             <property name="toolTip">
+              <string>You are given an option to stop the download of a layer if it's estimated to be over this value. Values over 1000 MB are always stopped.</string>
+             </property>
+             <property name="whatsThis">
+              <string/>
+             </property>
              <property name="text">
               <string>Threshold for sending a download size warning (in MB, max 1000):</string>
              </property>
@@ -506,6 +541,12 @@
                <width>250</width>
                <height>16777215</height>
               </size>
+             </property>
+             <property name="toolTip">
+              <string>You are given an option to stop the download of a layer if it's estimated to be over this value. Values over 1000 MB are always stopped.</string>
+             </property>
+             <property name="whatsThis">
+              <string/>
              </property>
              <property name="minimum">
               <number>1</number>
