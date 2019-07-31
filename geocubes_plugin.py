@@ -587,7 +587,7 @@ class GeocubesPlugin:
                                     "decrease resolution or crop area size and try again.")
             return False
             
-        if size_in_mb > self.file_size_cap:
+        if size_in_mb > int(self.file_size_cap):
             buttonReply = QMessageBox.question(self.dlg, 'File size warning', 
                         "Raw file size of layer " + name + " is estimated to be " +
                         str(int(size_in_mb)) + " MB, which is over the suggested limit ("+
@@ -616,17 +616,17 @@ class GeocubesPlugin:
         """
         Downloads raster datasets from Geocubes servers as selected by the user
         This is done by forming an url comprised of layer names, years, extent
-        and resolution. Either directly creates a QGis raster layer by 
-        passing the url as data source (referred to as temp layer, though strictly
-        speaking I don't believe it's saved to some temp folder. Not sure though).
-        Another option is to save layers to disk and passing that as the source.
+        and resolution. Directly creates a QGis raster layer by 
+        passing the url as data source. Another option is to save layers
+         to disk and passing path to the saved layer as the source.
         """
-        # nothing will be downloaded if nothing is selected. Notifies user. Else continue
-        if(len(self.datasets_to_download) == 0):
+        # does several checks. Any one of these will stop the download operation
+        # for example, the first one checks for empty download list
+        if not self.datasets_to_download:
             self.sendWarning("Missing data", "Please select one or more data layers!", 8)
         elif not self.resolution:
             self.sendWarning("Missing data", "Please select resolution!", 8)
-        elif self.admin_radio_button.isChecked() and len(self.areas_box.checkedItems()) == 0:
+        elif self.admin_radio_button.isChecked() and not self.areas_box.checkedItems:
             self.sendWarning("Missing selection","Please select admin areas!", 8)
         elif self.poly_radio_button.isChecked() and not self.polygon_list:
             self.sendWarning("Invalid or no polygon","Please redraw polygon", 8)
@@ -690,9 +690,13 @@ class GeocubesPlugin:
                 else:
                     data_url = self.formAdminUrl(name, year)
                 
+                # log message containing the url. For advanced users
                 QgsMessageLog.logMessage('Download url for layer ' + name + ': ' + data_url,
                                          'Geocubes plugin',
                                          Qgis.Info)
+                
+                # activate saving to disk procedure with the appropriate file
+                # format, given the button is selected. If not, add straight to QGIS
                 if self.save_disk_button.isChecked():
                     if self.gtiff_radio_button.isChecked():
                         file_format = 'tif'
@@ -1052,6 +1056,8 @@ class GeocubesPlugin:
                              " or they function incorrectly", 7)
             
     def updateSettings(self):
+        """Activated when settings are saved. Stores the new settings in the
+        ini-file."""
         if not self.plugin_settings:
             return
         
@@ -1063,6 +1069,8 @@ class GeocubesPlugin:
         self.plugin_settings.setValue("file_size_cap", self.file_size_cap)
         
     def setDefaultSettings(self):
+        """Activated when user clicks on default settings. Changes values
+            on the ini file as well as the boxes."""
         if not self.plugin_settings:
             return
         
@@ -1310,18 +1318,28 @@ class GeocubesPlugin:
         # push current extent to the box
         self.updateExtent()
         
+        # settings initialized below. First a connection to the settings (located 
+        # in the directory where this file run from) is established
+        # an ini file should exist at the location
         try:
             path_to_settings = self.plugin_dir + "/geocubes_plugin_settings.ini"
             self.plugin_settings = QSettings(path_to_settings,
                                QSettings.IniFormat)
         except Exception:
             self.plugin_settings = False
-            
+        
+        # if all works, create the settings
         if self.plugin_settings:
+            # get number (stored as an string) from the file. If value not found,
+            # use 100 as a default
             self.file_size_cap = self.plugin_settings.value("file_size_cap", 100)
+            # settings can't handle booleans. therefore, this is stored as
+            # 0 = unchecked & 1 = checked
             self.ask_for_layer_name = self.plugin_settings.value("ask_layer_name", 0)
+            # string mapped to int and then to boolean (since 0 = False)
             self.ask_for_layer_name = bool(int(self.ask_for_layer_name))
             
+            # set the values to boxes
             self.max_file_size_spin_box.setValue(int(self.file_size_cap))
             self.layer_name_config_cb.setChecked(self.ask_for_layer_name)
 
