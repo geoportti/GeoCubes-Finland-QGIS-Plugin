@@ -174,10 +174,6 @@ class MapWindow(QMainWindow):
                        'GEOCUBES BG-LAYER - TO BE REMOVED', 'wms')
 
         if self.bg_layer.isValid():
-            #self.bg_layer.setLabelsEnabled(True)
-            #layer_labeling = QgsVectorLayerSimpleLabeling(self.label_settings)
-            #self.bg_layer.setLabeling(layer_labeling)
-            #self.bg_layer.renderer().symbol().setColor(Qt.gray)
             QgsProject.instance().addMapLayer(self.bg_layer, False)
             self.canvas.setLayers([self.layer, self.bg_layer])
         else:

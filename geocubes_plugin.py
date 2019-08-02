@@ -182,7 +182,6 @@ class GeocubesPlugin:
         # will be set False in run()
         self.first_start = True
 
-
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -946,7 +945,7 @@ class GeocubesPlugin:
         "&request=GetFeature&typename="+area_name+"&pagingEnabled=true")
         
         # pass url, label and data provider
-        vector_layer = QgsVectorLayer(url, "WFS-layer-REMOVE", "WFS")
+        vector_layer = QgsVectorLayer(url, "WFS-layer-TO-BE-REMOVED", "WFS")
         
         if not vector_layer.isValid():
             self.sendWarning("Query error", "WFS query failed", 8)
@@ -1313,20 +1312,16 @@ class GeocubesPlugin:
         self.admin_areas_box.setCurrentIndex(-1)
         self.admin_area = self.admin_areas_box.currentText()
         
-        
         # set default text
         self.updateInfoText()
         
-        #self.bbox_radio_button.setChecked(True)
-        
+        # setting default radio button selections
         self.save_temp_button.setChecked(True)
-        
         self.gtiff_radio_button.setChecked(True)
-        
         self.bbox_radio_button.setChecked(True)
         
+        # empty areas and dataset selections
         self.areas_box.clear()
-        
         self.deselectDatasets()
         
         # canvas extent at the start

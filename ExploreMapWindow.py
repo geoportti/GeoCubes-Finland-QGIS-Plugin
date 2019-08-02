@@ -121,6 +121,8 @@ class ExploreMapWindow(QMainWindow):
         for key in self.all_datasets:
             self.layer_box.addItem(key)
         
+        self.zoomToExtent()
+        self.text_browser.setText("Legend will be shown here")
         self.show()
         
     def getLegendInfo(self, point):
@@ -209,6 +211,7 @@ class ExploreMapWindow(QMainWindow):
             # the desired parameters are housed in the dictionary. Luckily the
             # combobox houses the keys to it. gets a tuple with four values
             value = self.all_datasets[key]
+            # name is first value, year last. separated with an underscore
             layer_name = value[0] + "_" + value[3]
         
         self.bg_layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
