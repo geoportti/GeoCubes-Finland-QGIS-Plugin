@@ -77,10 +77,13 @@ class PolygonMapWindow(QMainWindow):
     def pan(self):
         """Simply activates the tool"""
         self.canvas.setMapTool(self.toolPan)
+        # make sure the other button isn't checked to avoid confusion
+        self.actionDraw.setChecked(False)
         
     def draw(self):
         """Activates draw tool"""
         self.canvas.setMapTool(self.toolDraw)
+        self.actionPan.setChecked(False)
         
     def clear(self):
         self.toolDraw.reset()
@@ -113,7 +116,6 @@ class PolygonMapWindow(QMainWindow):
                        'GEOCUBES BG-LAYER - TO BE REMOVED', 'wms')
         
         if self.bg_layer.isValid():
-            #self.bg_layer.renderer().symbol().setColor(QColor(170,170,170))
             QgsProject.instance().addMapLayer(self.bg_layer, False)
             self.canvas.setExtent(self.bg_layer.extent())
             self.canvas.setLayers([self.bg_layer])

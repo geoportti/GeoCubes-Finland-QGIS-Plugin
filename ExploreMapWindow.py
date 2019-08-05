@@ -97,9 +97,12 @@ class ExploreMapWindow(QMainWindow):
     def pan(self):
         """Simply activates the tool"""
         self.canvas.setMapTool(self.toolPan)
+        # make sure the other button isn't checked to avoid confusion
+        self.actionLegend.setChecked(False)
         
     def info(self):
         self.canvas.setMapTool(self.toolClick)
+        self.actionPan.setChecked(False)
         
     def zoomToExtent(self):
         # zooms out/in so that the raster layer is centered

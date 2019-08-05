@@ -29,7 +29,7 @@ from PyQt5.QtWidgets import (QAction, QTableWidgetItem, QSizePolicy, QFileDialog
                              QLineEdit)
 from qgis.core import (QgsProject, QgsCoordinateReferenceSystem, QgsRasterLayer,
                        Qgis, QgsVectorLayer, QgsFileDownloader, QgsExpression,
-                       QgsFeatureRequest, QgsMessageLog, QgsSettings)
+                       QgsFeatureRequest, QgsMessageLog)
 from qgis.gui import (QgsBusyIndicatorDialog, QgsMessageBar)
 
 # Initialize Qt resources from file resources.py
@@ -1328,7 +1328,7 @@ class GeocubesPlugin:
         og_extent = self.canvas.extent()
         
         # these three things must be set when initialising the extent box
-        self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
+        #self.extent_box.setOriginalExtent(og_extent, self.canvas.mapSettings().destinationCrs())
         self.extent_box.setCurrentExtent(og_extent, self.proj_crs)
         self.extent_box.setOutputCrs(self.proj_crs)
         
@@ -1348,7 +1348,7 @@ class GeocubesPlugin:
         # if all works, create the settings
         if self.plugin_settings:
             # get number (stored as an string) from the file. If value not found,
-            # use 100 as a default
+            # use 100 by default
             self.file_size_cap = self.plugin_settings.value("file_size_cap", 100)
             # settings can't handle booleans. therefore, this is stored as
             # 0 = unchecked & 1 = checked
