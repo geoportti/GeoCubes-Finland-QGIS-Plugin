@@ -53,7 +53,7 @@
              <property name="font">
               <font>
                <family>Arial</family>
-               <pointsize>9</pointsize>
+               <pointsize>8</pointsize>
                <weight>50</weight>
                <bold>false</bold>
               </font>

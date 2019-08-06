@@ -320,8 +320,6 @@ class GeocubesPlugin:
         self.map_select_button.setEnabled(False)
         self.poly_draw_button.setEnabled(False)
         
-        self.vrt_radio_button.setEnabled(True)
-        
         # updating info text with the correct crop method
         self.crop_method_text = "Cropping with a bounding box"
         self.updateInfoText()
@@ -333,7 +331,6 @@ class GeocubesPlugin:
         self.areas_box.setEnabled(True)
         self.map_select_button.setEnabled(True)
         self.poly_draw_button.setEnabled(False)
-        self.vrt_radio_button.setEnabled(True)
         self.crop_method_text = "Cropping with administrative areas"
         self.updateInfoText()
         
@@ -345,8 +342,6 @@ class GeocubesPlugin:
         self.map_select_button.setEnabled(False)
         self.poly_draw_button.setEnabled(True)
         
-        # vrt is disabled on polygon clip for now
-        self.vrt_radio_button.setEnabled(False)
         self.crop_method_text = "Cropping with a drawn polygon"
         self.updateInfoText()
         
@@ -633,9 +628,6 @@ class GeocubesPlugin:
         and not self.poly_radio_button.isChecked()):
             self.sendWarning("Crop method missing","Please select one of the "+
                                  "three crop methods", 8)
-        elif self.poly_radio_button.isChecked() and not self.gtiff_radio_button.isChecked():
-            self.sendWarning("VRT file on polygon", "Please select a TIF file " +
-                             "when cropping with a polygon", 8)
         else:
             # get info that's passed to the Geocubes server
             dataset_parameters = self.getValues()
@@ -924,6 +916,8 @@ class GeocubesPlugin:
         poly_url = (self.url_base + "/clip/" + self.resolution +
                     "/"+ name +"/polygon:" + self.formatPolygon()
                     + "/" + year)
+        if self.vrt_radio_button.isChecked():
+            poly_url = poly_url+"/vrt/mr"
 
         return poly_url
             
@@ -1334,6 +1328,9 @@ class GeocubesPlugin:
         
         # push current extent to the box
         self.updateExtent()
+        
+        # always start with the first tab ("Layer selection")
+        self.dlg.tabWidget.setCurrentIndex(0)
         
         # settings initialized below. First a connection to the settings (located 
         # in the directory where this file run from) is established
