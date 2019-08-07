@@ -509,7 +509,7 @@
             <string>Removes selections each time a download process goes through</string>
            </property>
            <property name="text">
-            <string>Deselect datasets after each download</string>
+            <string>Deselect layer selections after each download</string>
            </property>
           </widget>
          </item>

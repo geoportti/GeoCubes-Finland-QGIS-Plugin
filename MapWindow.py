@@ -35,6 +35,7 @@ class MapWindow(QMainWindow):
         self.canvas.setCanvasColor(Qt.white)
         self.canvas.setSelectionColor(QColor(255,255,26,200))
         self.canvas.enableAntiAliasing(True)
+        self.canvas.setParallelRenderingEnabled(True)
 
         # empty list for selected polygons
         self.selected_features = []

@@ -1097,7 +1097,7 @@ class GeocubesPlugin:
     def formatPolygon(self):
         """Returns polygons in a url form suitable for the Geocubes API.
         Takes a list of PointXY's (tuples consisting of coordinate doubles) and
-        trims the at the decimal point. Returns as a string with each value
+        trims them at the decimal point. Returns as a string with each value
         separated by comma."""
         polygon_str = ""
         for point in self.polygon_list:
