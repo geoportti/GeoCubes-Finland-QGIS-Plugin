@@ -38,12 +38,17 @@ class ExploreMapWindow(QMainWindow):
         # Qmainwindow requires a central widget. Canvas is placed
         self.setCentralWidget(self.canvas)
         
+        # creating background layer box and housing it with the hardcoded options
         self.bg_layer_box = QComboBox()
+        # if ortokuva ever updates to newer versions, just change the year here
         bg_layers = ['Taustakartta', 'Ortokuva_2018', 'No reference layer']
+        
+        # set 'No reference layer' as the default option
         self.bg_layer_box.addItems(layer for layer in bg_layers)
         self.bg_layer_box.setCurrentIndex(2)
         self.bg_layer_box.currentIndexChanged.connect(self.addBackgroundLayer)
         
+        # initialize the slider that will control BG layer opacity/transparency
         self.opacity_slider = QSlider(Qt.Horizontal)
         self.opacity_slider.setMinimum(0)
         self.opacity_slider.setMaximum(100)
@@ -53,12 +58,13 @@ class ExploreMapWindow(QMainWindow):
         
         self.legend_checkbox = QCheckBox("Get legend info on all layers")
         
+        # explanatory texts for the different widgets are stored as label widgets
         bg_layer_label = QLabel(" Background: ")
         bg_opacity_label = QLabel(" BG opacity: ")
         data_label = QLabel("Data: ")
         spacing = QLabel(" ")
         
-        # all of the layers are housed in this combobox
+        # all of the data layers are housed in this combobox
         self.layer_box = QComboBox()
         self.layer_box.currentIndexChanged.connect(self.addLayer)
         
@@ -89,7 +95,7 @@ class ExploreMapWindow(QMainWindow):
         self.tools_toolbar.setMovable(False)
         
         # change order here to change their placement on window
-        # starting with the layer widgets
+        # starting with the layer widgets and the corresponding label texts
         self.layers_toolbar.addWidget(data_label)
         self.layers_toolbar.addWidget(self.layer_box)
         self.layers_toolbar.addWidget(bg_layer_label)
@@ -99,7 +105,7 @@ class ExploreMapWindow(QMainWindow):
         self.layers_toolbar.addWidget(spacing)
         self.layers_toolbar.addWidget(self.legend_checkbox)
 
-        # then setting 
+        # then setting all the canvas tools on the second toolbar
         self.tools_toolbar.addAction(self.actionLegend)
         self.tools_toolbar.addAction(self.actionPan)
         self.tools_toolbar.addAction(self.actionZoom)
@@ -128,14 +134,14 @@ class ExploreMapWindow(QMainWindow):
         self.first_start = True
         
         # this boolean is true while there is no active background layer
-        # needed to ensure that e.g. opacity isn't attempted to be set on an nonexisting layer
+        # needed to ensure that e.g. opacity isn't attempted to be set on a nonexisting layer
         self.no_bg_layer_flag = True
         
         # set pantool as default
         self.pan()
 
     def pan(self):
-        """Simply activates the tool"""
+        """Simply activates the tool and deactivates the other tool if active"""
         self.canvas.setMapTool(self.toolPan)
         # make sure the other button isn't checked to avoid confusion
         self.actionLegend.setChecked(False)
@@ -145,7 +151,7 @@ class ExploreMapWindow(QMainWindow):
         self.actionPan.setChecked(False)
         
     def zoomToExtent(self):
-        # zooms out/in so that the raster layer is centered
+        """zooms out/in so that the raster layer is centered"""
         self.canvas.setExtent(self.layer.extent())
         self.canvas.refresh()
         
@@ -157,6 +163,8 @@ class ExploreMapWindow(QMainWindow):
             self.canvas.refresh()
         
     def getBackgroundMapOpacity(self):
+        """Returns the current BG layer opacity as a double [0, 1]. Slider only
+            accepts integers, therefore the initial value is divided by hundred."""
         return (self.opacity_slider.value()/100)
         
     def showCanvas(self, all_datasets):
@@ -174,7 +182,10 @@ class ExploreMapWindow(QMainWindow):
         for key in self.all_datasets:
             self.layer_box.addItem(key)
         
+        # zoom to the full extent of the current map
         self.zoomToExtent()
+        
+        # default values set
         self.text_browser.setText("Legend will be shown here")
         self.bg_layer_box.setCurrentIndex(2)
         self.opacity_slider.setValue(50)
@@ -272,10 +283,11 @@ class ExploreMapWindow(QMainWindow):
         self.layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
                        "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
                        "png&layers=" + layer_name.lower() + "&styles=default&tileMatrixSet=GRIDI-FIN", 
-                       'GEOCUBES DATALAYER - TO BE REMOVED', 'wms')
+                       'GEOCUBES DATALAYER - TEMPORARY', 'wms')
         
         if self.layer.isValid():
             QgsProject.instance().addMapLayer(self.layer, False)
+            # if layer is valid and added to the instance, insert it to the canvas
             self.setMapLayers()
             # zoom to the full extent of the map if canvas is started for the first time
             if self.first_start:
@@ -283,13 +295,20 @@ class ExploreMapWindow(QMainWindow):
                 self.first_start = False
                 
     def addBackgroundLayer(self):
+        """Adds a background layer to help user locating what they want.
+            This layer will be either background map (taustakarta), ortographic
+            imagery or nothing at all. BG layer has an opacity value that set by
+            the user. Function is called when user selects a layer on the
+            combobox."""
         layer_name = self.bg_layer_box.currentText()
         
+        # remove the old background layer, if one exists
         try:
             QgsProject.instance().removeMapLayer(self.bg_layer)
         except Exception:
             pass
         
+        # if user wants no background layer, return without setting a new layer
         if not layer_name or layer_name == 'No reference layer':
             self.no_bg_layer_flag = True
             self.canvas.refresh()
@@ -298,7 +317,7 @@ class ExploreMapWindow(QMainWindow):
             self.bg_layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
                        "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
                        "png&layers=" + layer_name.lower() + "&styles=default&tileMatrixSet=GRIDI-FIN", 
-                       'GEOCUBES BG-LAYER - TO BE REMOVED', 'wms')
+                       'GEOCUBES BG-LAYER - TEMPORARY', 'wms')
             
             if self.bg_layer.isValid():
                 self.no_bg_layer_flag = False
@@ -307,6 +326,9 @@ class ExploreMapWindow(QMainWindow):
                 self.setMapLayers()
                 
     def setMapLayers(self):
+        """Called anytime a new layer is added to the project instance.
+        Setting layers to canvas decides what's shown to the user and in which
+        order. If there's a background layer, it must be set before the data layer."""
         if self.no_bg_layer_flag:
             self.canvas.setLayers([self.layer])
         else:
@@ -320,7 +342,7 @@ class ExploreMapWindow(QMainWindow):
     def closeEvent(self, event):
         """Activated anytime Mapwindow is closed either by buttons given or
             if the user finds some other way to close the window. 
-            Deletes scrap maplayer."""
+            Deletes scrap maplayers."""
         try:
             QgsProject.instance().removeMapLayer(self.layer)
             QgsProject.instance().removeMapLayer(self.bg_layer)

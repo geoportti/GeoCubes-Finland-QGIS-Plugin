@@ -172,7 +172,7 @@ class MapWindow(QMainWindow):
         self.bg_layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
                        "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
                        "png&layers=taustakartta&styles=default&tileMatrixSet=GRIDI-FIN", 
-                       'GEOCUBES BG-LAYER - TO BE REMOVED', 'wms')
+                       'GEOCUBES BG-LAYER - TEMPORARY', 'wms')
 
         if self.bg_layer.isValid():
             QgsProject.instance().addMapLayer(self.bg_layer, False)

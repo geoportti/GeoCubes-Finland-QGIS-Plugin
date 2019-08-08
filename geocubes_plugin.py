@@ -1207,12 +1207,10 @@ class GeocubesPlugin:
             
             self.resolution_box.activated.connect(self.updateInfoText)
             
+            # map windows are initialized in the proper functions when/if first needed 
             self.map_canvas = False
             self.poly_map_canvas = False
             self.explore_map_canvas = False
-            
-            self.data_button = self.dlg.getDataButton
-            self.data_button.clicked.connect(self.getData)
             
             self.map_select_button = self.dlg.mapSelectButton
             self.map_select_button.clicked.connect(self.openMapWindow)
@@ -1223,10 +1221,13 @@ class GeocubesPlugin:
             self.explore_data_button = self.dlg.exploreDataButton
             self.explore_data_button.clicked.connect(self.openExploreMapWindow)
             
+            self.data_button = self.dlg.getDataButton
+            self.data_button.clicked.connect(self.getData)
+            
             self.optimal_res_button = self.dlg.optimalResolutionButton
             self.optimal_res_button.clicked.connect(self.setOptimalResolution)
             
-            # text that tells the user the current count of selected layers
+            # text that tells the user the current count of selected layers and other info
             self.layer_count_text = self.dlg.layerCountText
             
             # radio buttons for user to decide whether to get the data as
@@ -1243,6 +1244,7 @@ class GeocubesPlugin:
             self.admin_radio_button.toggled.connect(self.adminAreaCropSelected)
             self.poly_radio_button.toggled.connect(self.polygonCropSelected)
             
+            # will house the points that form the custom polygon
             self.polygon_list = []
             
             self.crop_method_text = "No crop method selected"
@@ -1274,6 +1276,8 @@ class GeocubesPlugin:
             # user selects an admin area
             self.vlayer = False
             
+            # file size limit in MB's. If downloads are over this value a warning
+            # with the option to stop the download is sent
             self.file_size_cap = 100
             self.max_file_size_spin_box = self.dlg.maxFileSizeSpinBox
             self.max_file_size_spin_box.valueChanged.connect(self.setFileSizeCap)
@@ -1286,6 +1290,7 @@ class GeocubesPlugin:
             
             self.poly_checkbox = self.dlg.polyCheckbox
             
+            # configuration checkboxes and buttons
             self.layer_name_config_cb = self.dlg.layerNamingConfigCheckBox
             self.add_layer_without_asking_cb = self.dlg.addLayerWithoutAskingCheckBox
             self.deselect_on_download_cb = self.dlg.deselectAfterDownloadCheckBox
@@ -1349,10 +1354,10 @@ class GeocubesPlugin:
         
         # if all works, create the settings
         if self.plugin_settings:
-            # get number (stored as an string) from the file. If value not found,
+            # get number (stored as a string) from the file. If value not found,
             # use 100 by default
             self.file_size_cap = self.plugin_settings.value("file_size_cap", 100)
-            # settings can't handle booleans. therefore, this is stored as
+            # settings can't handle booleans. therefore, these are stored as
             # 0 = unchecked & 1 = checked
             ask_name_setting = self.plugin_settings.value("ask_layer_name", 0)
             add_to_qgis_setting = self.plugin_settings.value("add_to_qgis_prompt", 0)
