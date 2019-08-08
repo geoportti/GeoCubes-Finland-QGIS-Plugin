@@ -955,6 +955,9 @@ class GeocubesPlugin:
     def openMapWindow(self):
         """Check if user has selected an admin layer. If yes, pass a copy of 
             that layer to the window and open it"""
+        if not self.map_canvas:
+            self.map_canvas = MapWindow()
+            self.map_canvas.finished.connect(self.mapSelectionToBox)
         if (not self.vlayer or not self.admin_areas_box.currentText()):
             self.sendWarning("Layer missing", "Select admin division first", 6)
         else:
@@ -968,9 +971,16 @@ class GeocubesPlugin:
                 self.map_canvas.addLayer(scrap_vlayer)
 
     def openPolyMapWindow(self):
+        if not self.poly_map_canvas:
+            self.poly_map_canvas = PolygonMapWindow()
+            self.poly_map_canvas.finished.connect(self.getMapPolygon)
+        
         self.poly_map_canvas.showCanvas()
         
     def openExploreMapWindow(self):
+        if not self.explore_map_canvas:
+            self.explore_map_canvas = ExploreMapWindow(self.url_base)
+
         self.explore_map_canvas.showCanvas(self.datasets_all)
         
     def getMapPolygon(self):
@@ -1186,7 +1196,6 @@ class GeocubesPlugin:
             # therefore that's the default crs
             self.extent_box = self.dlg.mExtentGroupBox
             self.proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
-            #self.extent_box.extentChanged.connect(self.extentResolution)
             
             # current base url (shared by all queries) of the Geocubes project. Modify if url changes
             self.url_base = "http://86.50.168.160/geocubes"
@@ -1198,13 +1207,9 @@ class GeocubesPlugin:
             
             self.resolution_box.activated.connect(self.updateInfoText)
             
-            self.map_canvas = MapWindow()
-            self.map_canvas.finished.connect(self.mapSelectionToBox)
-            
-            self.poly_map_canvas = PolygonMapWindow()
-            self.poly_map_canvas.finished.connect(self.getMapPolygon)
-            
-            self.explore_map_canvas = ExploreMapWindow(self.url_base)
+            self.map_canvas = False
+            self.poly_map_canvas = False
+            self.explore_map_canvas = False
             
             self.data_button = self.dlg.getDataButton
             self.data_button.clicked.connect(self.getData)

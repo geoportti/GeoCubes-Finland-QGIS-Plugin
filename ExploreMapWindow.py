@@ -78,7 +78,8 @@ class ExploreMapWindow(QMainWindow):
         self.actionCancel.triggered.connect(self.cancel)
         self.actionZoom.triggered.connect(self.zoomToExtent)
         
-        # toolbar at the top of the screen: houses actions as buttons
+        # defining two toolbars: first one houses layer and opacity selection
+        # the other has all the tools and functions
         self.layers_toolbar = self.addToolBar("Select layers")
         self.layers_toolbar.setContextMenuPolicy(Qt.PreventContextMenu)
         self.layers_toolbar.setMovable(False)
@@ -86,10 +87,9 @@ class ExploreMapWindow(QMainWindow):
         self.tools_toolbar = self.addToolBar("Tools")
         self.tools_toolbar.setContextMenuPolicy(Qt.PreventContextMenu)
         self.tools_toolbar.setMovable(False)
-
-        
         
         # change order here to change their placement on window
+        # starting with the layer widgets
         self.layers_toolbar.addWidget(data_label)
         self.layers_toolbar.addWidget(self.layer_box)
         self.layers_toolbar.addWidget(bg_layer_label)
@@ -99,7 +99,7 @@ class ExploreMapWindow(QMainWindow):
         self.layers_toolbar.addWidget(spacing)
         self.layers_toolbar.addWidget(self.legend_checkbox)
 
-        
+        # then setting 
         self.tools_toolbar.addAction(self.actionLegend)
         self.tools_toolbar.addAction(self.actionPan)
         self.tools_toolbar.addAction(self.actionZoom)
@@ -127,6 +127,8 @@ class ExploreMapWindow(QMainWindow):
         # this is to ensure that the map isn't zoomed out everytime the layer changes
         self.first_start = True
         
+        # this boolean is true while there is no active background layer
+        # needed to ensure that e.g. opacity isn't attempted to be set on an nonexisting layer
         self.no_bg_layer_flag = True
         
         # set pantool as default
