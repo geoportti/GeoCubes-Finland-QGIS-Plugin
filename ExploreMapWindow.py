@@ -31,12 +31,15 @@ class ExploreMapWindow(QMainWindow):
         self.canvas.setMinimumSize(550, 700)
         self.canvas.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.canvas.setCanvasColor(Qt.white)
-        self.canvas.enableAntiAliasing(True)
+        #self.canvas.enableAntiAliasing(True)
         
         self.url_base = url_base
         
         # Qmainwindow requires a central widget. Canvas is placed
         self.setCentralWidget(self.canvas)
+        
+        self.tile_widths = {2560: 10, 5120: 20, 12800: 50, 25600: 100,
+                            51200: 200, 128000: 500, 256000: 1000}
         
         # creating background layer box and housing it with the hardcoded options
         self.bg_layer_box = QComboBox()
@@ -199,6 +202,7 @@ class ExploreMapWindow(QMainWindow):
             to be inserted to the text browser."""
         formatted_point = str(int(point.x()))+","+str(int(point.y()))
         
+        
         url = self.formLegendUrl(formatted_point)
         
         if not url:
@@ -207,6 +211,7 @@ class ExploreMapWindow(QMainWindow):
         response = requests.get(url, timeout=6)
         
         # 200 = succesful request
+        # the field won't be updated in case of a failed request
         if response.status_code == 200:
             legend_string = response.content.decode("utf-8")
             self.setTextToBrowser(legend_string)
@@ -233,15 +238,15 @@ class ExploreMapWindow(QMainWindow):
             Data is queried either from the currently selected layer or, in the
             case on the background map, from all available layers."""
         key = self.layer_box.currentText()
-        resolution = 10
+        resolution = self.getResolutionFromScale()
         
         if not key:
             return
         
         # pintamaalaji lacks data on for much of Finland on the higher resolutions
         # hence, an exception is made
-        if key == "Pintamaalaji;2018":
-            resolution = 100
+        #if key == "Pintamaalaji;2018":
+            #resolution = 100
         if self.legend_checkbox.isChecked():
             layer_name = "all"
             year = "2015"
@@ -254,6 +259,24 @@ class ExploreMapWindow(QMainWindow):
                     + "/" + year)
         
         return url
+    
+    def getResolutionFromScale(self):
+        canvas_extent = self.canvas.extent()
+        
+        width = canvas_extent.xMaximum()-canvas_extent.xMinimum()
+        
+
+        # fetch all resolutions from the box as integers
+        all_widths = [i for i in self.tile_widths]
+        
+        try:
+            closest_width = min(all_widths, key=lambda x:abs(x-width))
+        except Exception:
+            return
+        
+        closest_resolution = self.tile_widths[closest_width]
+        
+        return closest_resolution
     
     def addLayer(self):
         """Adds a new layer on the map canvas based on the selection on the combobox.

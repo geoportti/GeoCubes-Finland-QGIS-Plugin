@@ -1374,7 +1374,6 @@ class GeocubesPlugin:
             self.add_layer_without_asking_cb.setChecked(add_to_qgis_setting)
             self.deselect_on_download_cb.setChecked(deselect_on_download_setting)
 
-        
         # show the dialog
         self.dlg.show()
         
