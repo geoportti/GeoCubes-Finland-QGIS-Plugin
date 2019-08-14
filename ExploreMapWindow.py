@@ -38,8 +38,22 @@ class ExploreMapWindow(QMainWindow):
         # Qmainwindow requires a central widget. Canvas is placed
         self.setCentralWidget(self.canvas)
         
+        """'tile widths' refer to the Map proxy WMTS server's settings for displaying
+        data of different resolutions. If I understood correctly, these values 
+        (got by examining properties of a layer from that server in QGIS) are
+        the thresholds at which a different resolution is loaded on the GRIDI-FIN
+        tileset. The values represent the tile size in map units (meters). 
+        
+        Each tile widths is tied to the corresponding resolution, which is used
+        to get the correct resolution legend info. The method is only an estimation,
+        but ought to produce good enough results for this purpose.
+        Smallest resolutions (1, 2, 5) are omitted since only some layers 
+        have them. """
         self.tile_widths = {2560: 10, 5120: 20, 12800: 50, 25600: 100,
                             51200: 200, 128000: 500, 256000: 1000}
+        
+        # get all keys i.e. widths
+        self.all_widths = [i for i in self.tile_widths]
         
         # creating background layer box and housing it with the hardcoded options
         self.bg_layer_box = QComboBox()
@@ -235,18 +249,17 @@ class ExploreMapWindow(QMainWindow):
     
     def formLegendUrl(self, formatted_point):
         """Forms an url for querying legend data on a specific coordinate point.
-            Data is queried either from the currently selected layer or, in the
-            case on the background map, from all available layers."""
+            Data is queried either from the currently selected layer or, if selected
+            by the user, from all available layers."""
         key = self.layer_box.currentText()
-        resolution = self.getResolutionFromScale()
+        resolution = self.getResolutionFromExtent()
         
         if not key:
             return
         
-        # pintamaalaji lacks data on for much of Finland on the higher resolutions
-        # hence, an exception is made
-        #if key == "Pintamaalaji;2018":
-            #resolution = 100
+        if not resolution:
+            resolution = 100
+
         if self.legend_checkbox.isChecked():
             layer_name = "all"
             year = "2015"
@@ -260,20 +273,23 @@ class ExploreMapWindow(QMainWindow):
         
         return url
     
-    def getResolutionFromScale(self):
+    def getResolutionFromExtent(self):
+        """Estimates the resolution of the imagery currently viewed by user
+         based on the width of the canvas. Returns said resolution. Used by
+         the legend tool to get info of the correct dataset."""
+        # extent as a QgsRectangle
         canvas_extent = self.canvas.extent()
         
+        # width (in meters, since CRS is EPSG:3067) of the current canvas view
         width = canvas_extent.xMaximum()-canvas_extent.xMinimum()
         
-
-        # fetch all resolutions from the box as integers
-        all_widths = [i for i in self.tile_widths]
-        
+        # find the width threshold closest to the current one
         try:
-            closest_width = min(all_widths, key=lambda x:abs(x-width))
+            closest_width = min(self.all_widths, key=lambda x:abs(x-width))
         except Exception:
             return
         
+        # use the width key to get the corrensponding resolution
         closest_resolution = self.tile_widths[closest_width]
         
         return closest_resolution

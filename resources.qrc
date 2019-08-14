@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/plugins/geocubes_plugin" >
-        <file>icon.png</file>
+        <file>geocubes_icon.png</file>
     </qresource>
 </RCC>
