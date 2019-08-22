@@ -812,7 +812,7 @@ class GeocubesPlugin:
             QGIS as a layer via the file path given by user"""
         self.loop.exit()
         
-        if self.add_layer_without_asking_cb.isChecked:
+        if self.add_layer_without_asking_cb.isChecked():
             self.addLayerToQgis(file_path, label=file_name, name=layer_name)
         else:
             buttonReply = QMessageBox.question(self.dlg, 'Add layer to QGIS', 

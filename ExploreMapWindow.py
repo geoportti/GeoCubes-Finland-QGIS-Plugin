@@ -73,7 +73,7 @@ class ExploreMapWindow(QMainWindow):
         self.opacity_slider.setMaximumWidth(100)
         self.opacity_slider.valueChanged.connect(self.setBackgroundMapOpacity)
         
-        self.legend_checkbox = QCheckBox("Get legend info on all layers")
+        self.legend_checkbox = QCheckBox("Get attribute info on all layers")
         
         # explanatory texts for the different widgets are stored as label widgets
         bg_layer_label = QLabel(" Background: ")
@@ -87,7 +87,7 @@ class ExploreMapWindow(QMainWindow):
         
         # creating each desired action
         self.actionPan = QAction("Pan tool", self)
-        self.actionLegend = QAction("Legend info tool", self)
+        self.actionLegend = QAction("Attribute info tool", self)
         self.actionCancel = QAction("Close window", self)
         self.actionZoom = QAction("Zoom to full extent", self)
         
@@ -319,9 +319,13 @@ class ExploreMapWindow(QMainWindow):
             # name is first value, year last. separated with an underscore
             layer_name = value[0] + "_" + value[3]
         
-        self.layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
-                       "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
-                       "png&layers=" + layer_name.lower() + "&styles=default&tileMatrixSet=GRIDI-FIN", 
+        url = ("http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
+                "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
+                "png&layers=" + layer_name + "&styles=default&tileMatrixSet=GRIDI-FIN")
+                
+
+        
+        self.layer = QgsRasterLayer("url="+url, 
                        'GEOCUBES DATALAYER - TEMPORARY', 'wms')
         
         if self.layer.isValid():
