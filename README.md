@@ -19,6 +19,10 @@ This QGIS 3.x plugin enables using all of the abovementioned features effortless
 - Select *Install from ZIP* in the plugin manager. Navigate to the zip file.
 #### I found a bug and/or want to suggest a new feature. What do I do now?
 We are grateful for all feedback. If you find errors or have suggestions to improve the plugin, please open an issue in the repository or see infobox on top of *geocubes_plugin.py* for email information.
+#### Layers can't sometimes be added directly to QGIS – what to do?
+On some envinroments, attempting to add Geocubes layers to QGIS will always fail. One known reason for this is a GDAL driver called [DODS](https://gdal.org/drivers/raster/dods.html). Disabling this driver will fix the problem. [See here for details](https://trac.osgeo.org/gdal/ticket/6682). Basically, the command GDAL_SKIP=DODS must be typed to the appropriate terminal preceded by either SET or EXPORT depending on the platform. Read more on configuration options [here](https://trac.osgeo.org/gdal/wiki/ConfigOptions). If this didn't fix the problem, see above what to do in case of a bug.
+
+The problem can also be circumvented by only saving layers to disk.
 
 ## Mikä on Geocubes Finland?
 Geocubes Finland on Paikkatietokeskus FGI:n ylläpitämä harmonisoidun moniresoluutioisen rasterigeodatan tietovarasto. Se sisältää keskeisiä kansallisia aineistoja liittyen esimerkiksi korkeusmalliin, maanpeitteeseen ja metsätalouteen. Lisätietoa englanniksi [Geocubes Finlandin pääsivulta](http://86.50.168.160/geocubes) sekä [käytön ja siteeraamisen kuvauksesta](https://github.com/geoportti/GeoCubes).
@@ -36,3 +40,7 @@ Tällä QGIS 3.x -laajennuksella edellämainittujen ominaisuuksien käyttö suju
 - Valitse vasemmalta *Install from ZIP* ja etsi äsken ladattu tiedosto
 #### Löysin bugin ja/tai tahdon ehdottaa uutta ominaisuutta. Mitä teen?
 Vastaanotamme palautetta hyvin mielellään. Jos löydät virheitä tai sinulla on kehitysehdotuksia, avaa keskustelu repositorion *Issues*-välilehdellä tai ota yhteyttä sähköpostitse *geocubes-plugin.py*-tiedoston yläosan laatikosta löytyvään osoitteeseen.
+#### Tasoja ei toisinaan voi lisätä QGIS:iin. Mitä teen?
+Joissain ympäristöissä tason lisääminen suoraan QGIS:iin epäonnistuu aina. Eräs tunnettu syy tälle on GDAL-ajuri nimeltään [DODS](https://gdal.org/drivers/raster/dods.html). Ajurin poistaminen käytöstä korjaa ongelman. [Lisätietoja täältä](https://trac.osgeo.org/gdal/ticket/6682). Käytännössä käyttäjän tulee kirjoittaa oikeaan terminaaliin käsky GDAL_SKIP=DODS jota edeltää joko SET tai EXPORT alustasta riippuen. Lue [GDAL:n asetusten määrittämisestä](https://trac.osgeo.org/gdal/wiki/ConfigOptions). Jos ongelma jatkuu, katso ylhäältä toimet bugeja kohdatessa.
+
+Ongelman voi myös sivuuttaa lataamalla tasot aina kovalevylle.
