@@ -1,7 +1,7 @@
 # GeoCubes Finland - QGIS plugin
 A QGIS plugin to access raster data on GeoCubes Finland, maintained by Finnish Geospatial Research Institute (FGI).
 
-[Esittely suomeksi alla](https://github.com/tleppamaki/Geocubes-Finland-QGIS-plugin#mik%C3%A4-on-geocubes-finland)
+[Esittely suomeksi alla](https://github.com/geoportti/GeoCubes-Finland-QGIS-Plugin#mik%C3%A4-on-geocubes-finland)
 
 ## What is GeoCubes Finland?
 GeoCubes Finland is a harmonised, multi-resolution raster geodata repository. The repository contains several key national datasets on themes such as elevation, land cover and forestry. Read more: [GeoCubes Finland main site](http://86.50.168.160/geocubes) and [description on usage and citing](https://github.com/geoportti/GeoCubes).
