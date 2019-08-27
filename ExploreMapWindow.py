@@ -165,6 +165,7 @@ class ExploreMapWindow(QMainWindow):
         
     def info(self):
         self.canvas.setMapTool(self.toolClick)
+        self.actionLegend.setChecked(True)
         self.actionPan.setChecked(False)
         
     def zoomToExtent(self):

@@ -624,7 +624,7 @@ class GeocubesPlugin:
             self.sendWarning("Missing selection","Please select admin areas!", 8)
         elif self.poly_radio_button.isChecked() and not self.polygon_list:
             self.sendWarning("Invalid or no polygon","Please redraw polygon", 8)
-        elif (not self.admin_radio_button.isChecked() and not self.bbox_radio_button.isChecked() 
+        elif (not self.admin_radio_button.isChecked() and not self.bbox_radio_button.isChecked()
         and not self.poly_radio_button.isChecked()):
             self.sendWarning("Crop method missing","Please select one of the "+
                                  "three crop methods", 8)

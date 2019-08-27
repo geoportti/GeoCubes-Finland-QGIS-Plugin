@@ -10,7 +10,7 @@
 name=GeoCubes Plugin
 qgisMinimumVersion=3.0
 description=Interface to download raster data from GeoCubes Finland
-version=0.1
+version=1.0
 author=Paikkatietokeskus FGI
 email=lassi.lehto@nls.fi
 
