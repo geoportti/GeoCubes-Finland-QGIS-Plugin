@@ -3,8 +3,7 @@
 # GeoCubes Finland - QGIS plugin
 A QGIS plugin to access raster data on GeoCubes Finland, maintained by Finnish Geospatial Research Institute (FGI).
 
-See introduction video here:
-[![Watch the video](https://img.youtube.com/vi/WWAHyrBS0gk/hqdefault.jpg)](https://www.youtube.com/watch?v=WWAHyrBS0gk)
+[**Video introducing GeoCubes Finland and this plugin**](https://www.youtube.com/watch?v=WWAHyrBS0gk)
 
 [Esittely suomeksi alla](https://github.com/geoportti/GeoCubes-Finland-QGIS-Plugin#mik%C3%A4-on-geocubes-finland)
 
