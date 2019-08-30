@@ -31,6 +31,7 @@ When using GeoCubes Finland, please cite the oGIIR project: "We made use of geos
 
 **Authored by [Tatu Leppämäki](https://twitter.com/tadusk0) and the Department of Geoinformatics and Cartography at FGI**
 
+
 ## Mikä on GeoCubes Finland?
 GeoCubes Finland on Paikkatietokeskus FGI:n ylläpitämä harmonisoidun moniresoluutioisen rasterigeodatan tietovarasto. Se sisältää keskeisiä kansallisia aineistoja liittyen esimerkiksi korkeusmalliin, maanpeitteeseen ja metsätalouteen. Lisätietoa englanniksi [GeoCubes Finlandin pääsivulta](http://86.50.168.160/geocubes) sekä [käytön ja siteeraamisen kuvauksesta](https://github.com/geoportti/GeoCubes).
 #### Harmonisoitu? Mitäs se tarkoittaa?
@@ -47,7 +48,7 @@ Tällä QGIS 3.x -laajennuksella edellämainittujen ominaisuuksien käyttö suju
 - Valitse vasemmalta *Install from ZIP* ja etsi äsken ladattu tiedosto
 #### Löysin bugin ja/tai tahdon ehdottaa uutta ominaisuutta. Mitä teen?
 Vastaanotamme palautetta hyvin mielellään. Jos löydät virheitä tai sinulla on kehitysehdotuksia, avaa keskustelu repositorion *Issues*-välilehdellä tai ota yhteyttä sähköpostitse *geocubes-plugin.py*-tiedoston yläosan laatikosta löytyvään osoitteeseen.
-#### Tasoja ei toisinaan voi lisätä QGIS:iin. Mitä teen?
+#### En pysty lisäämään tasoja QGIS:iin. Mitä teen?
 Joissain ympäristöissä tason lisääminen suoraan QGIS:iin epäonnistuu aina. Eräs tunnettu syy tälle on GDAL-ajuri nimeltään [DODS](https://gdal.org/drivers/raster/dods.html). Ajurin poistaminen käytöstä korjaa ongelman. [Lisätietoja täältä](https://trac.osgeo.org/gdal/ticket/6682). Helpoiten ajurin saa pois käytöstä QGIS:n asetusten kautta. **Valitse Settings -> Options -> GDAL. Selaa listaa DODS:n kohdalle, klikkaa pois käytöstä ja paina Ok.** Saman voi tehdä terminaalin kautta: käyttäjän tulee kirjoittaa oikeaan terminaaliin käsky GDAL_SKIP=DODS jota edeltää joko SET tai EXPORT alustasta riippuen. Lue [GDAL:n asetusten määrittämisestä](https://trac.osgeo.org/gdal/wiki/ConfigOptions).
 
 Jos ongelma jatkuu, katso ylhäältä toimet bugeja kohdatessa. Ongelman voi myös sivuuttaa lataamalla tasot aina kovalevylle.
