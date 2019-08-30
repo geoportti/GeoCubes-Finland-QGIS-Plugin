@@ -1,4 +1,5 @@
 <img src="https://github.com/geoportti/Logos/blob/master/geoportti_logo_300px.png">
+
 # GeoCubes Finland - QGIS plugin
 A QGIS plugin to access raster data on GeoCubes Finland, maintained by Finnish Geospatial Research Institute (FGI).
 
