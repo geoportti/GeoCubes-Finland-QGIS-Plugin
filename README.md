@@ -8,9 +8,9 @@ A QGIS plugin to access raster data on GeoCubes Finland, maintained by Finnish G
 [Esittely suomeksi alla](https://github.com/geoportti/GeoCubes-Finland-QGIS-Plugin#mik%C3%A4-on-geocubes-finland)
 
 ## What is GeoCubes Finland?
-GeoCubes Finland is a harmonised, multi-resolution raster geodata repository. The repository contains several key national datasets on themes such as elevation, land cover and forestry. Read more: [GeoCubes Finland main site](http://86.50.168.160/geocubes) and [description on usage and citing](https://github.com/geoportti/GeoCubes).
+GeoCubes Finland is a harmonised, multi-resolution raster geodata repository. The repository contains several key national datasets on themes such as elevation, land cover and forestry. Read more: [GeoCubes Finland main site](https://vm0160.kaj.pouta.csc.fi/geocubes) and [description on usage and citing](https://github.com/geoportti/GeoCubes).
 #### Harmonised? What does that mean?
-Simply that the data is as simple to access and use as can be. All of the data is in the same CRS (EPSG:3067), is georeferenced uniformly and is available as both a GeoTIFF image or a [VRT virtual file](https://gdal.org/drivers/raster/vrt.html). The data is available in resolutions ranging from 1 to 1000 meters and can be cropped flexibly with e.g. a bounding box or administrative area boundaries. Read more [here](http://86.50.168.160/geocubes/description/).
+Simply that the data is as simple to access and use as can be. All of the data is in the same CRS (EPSG:3067), is georeferenced uniformly and is available as both a GeoTIFF image or a [VRT virtual file](https://gdal.org/drivers/raster/vrt.html). The data is available in resolutions ranging from 1 to 1000 meters and can be cropped flexibly with e.g. a bounding box or administrative area boundaries. Read more [here](https://vm0160.kaj.pouta.csc.fi/geocubes/description/).
 All of this means that **accessing raster datasets is easier than ever before**.
 #### Who's the service for and who can use it?
 GeoCubes Finland has been created under the [oGIIR project](http://ogiir.fi/) and as such, is aimed to support the needs of Finnish research community. However, the service and its data is freely usable by anyone interested.
@@ -35,9 +35,9 @@ When using GeoCubes Finland, please cite the oGIIR project: "We made use of geos
 
 
 ## Mikä on GeoCubes Finland?
-GeoCubes Finland on Paikkatietokeskus FGI:n ylläpitämä harmonisoidun moniresoluutioisen rasterigeodatan tietovarasto. Se sisältää keskeisiä kansallisia aineistoja liittyen esimerkiksi korkeusmalliin, maanpeitteeseen ja metsätalouteen. Lisätietoa englanniksi [GeoCubes Finlandin pääsivulta](http://86.50.168.160/geocubes) sekä [käytön ja siteeraamisen kuvauksesta](https://github.com/geoportti/GeoCubes).
+GeoCubes Finland on Paikkatietokeskus FGI:n ylläpitämä harmonisoidun moniresoluutioisen rasterigeodatan tietovarasto. Se sisältää keskeisiä kansallisia aineistoja liittyen esimerkiksi korkeusmalliin, maanpeitteeseen ja metsätalouteen. Lisätietoa englanniksi [GeoCubes Finlandin pääsivulta](https://vm0160.kaj.pouta.csc.fi/geocubes) sekä [käytön ja siteeraamisen kuvauksesta](https://github.com/geoportti/GeoCubes).
 #### Harmonisoitu? Mitäs se tarkoittaa?
-Että data on mahdollisimman helppoa saavuttaa ja käyttää. Kaikki aineistot ovat samassa koordinaattijärjestelmässä (EPSG:3067), yhtenäisesti georeferöityjä ja ovat saatavilla samoissa tiedostomuodoissa (GeoTIFF ja [Virtuaalinen tiedosto VRT](https://gdal.org/drivers/raster/vrt.html)). Moniresoluutioisuus tarkoittaa, että aineistot ovat saatavilla 1–1000 metrin resoluutioilla – rastereita voi myös rajata joustavasti mm. rajaavalla suorakaiteella tai hallinnollisten alueiden rajoilla. Tarkempi [kuvaus englanniksi](http://86.50.168.160/geocubes/description/).
+Että data on mahdollisimman helppoa saavuttaa ja käyttää. Kaikki aineistot ovat samassa koordinaattijärjestelmässä (EPSG:3067), yhtenäisesti georeferöityjä ja ovat saatavilla samoissa tiedostomuodoissa (GeoTIFF ja [Virtuaalinen tiedosto VRT](https://gdal.org/drivers/raster/vrt.html)). Moniresoluutioisuus tarkoittaa, että aineistot ovat saatavilla 1–1000 metrin resoluutioilla – rastereita voi myös rajata joustavasti mm. rajaavalla suorakaiteella tai hallinnollisten alueiden rajoilla. Tarkempi [kuvaus englanniksi](https://vm0160.kaj.pouta.csc.fi/geocubes/description/).
 Edellämainittu tarkoittaa, että **rasteridata on helpommin saatavilla ja käytettävissä kuin kuunaan**.
 #### Kenelle palvelu on suunnattu?
 GeoCubes Finland on kehitetty osana [oGIIR-hanketta](http://ogiir.fi/) ja siten suunnattu suomalaisen tutkijayhteisön tarpeisiin. Palvelu ja sen data ovat kuitenkin avoimesti käytettävissä.
