@@ -320,7 +320,7 @@ class ExploreMapWindow(QMainWindow):
             # name is first value, year last. separated with an underscore
             layer_name = value[0] + "_" + value[3]
         
-        url = ("http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
+        url = ("https://vm0160.kaj.pouta.csc.fi/ogiir_cache/wmts/1.0.0/" +
                 "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
                 "png&layers=" + layer_name + "&styles=default&tileMatrixSet=GRIDI-FIN")
                 
@@ -358,7 +358,7 @@ class ExploreMapWindow(QMainWindow):
             self.canvas.refresh()
             return
         else:
-            self.bg_layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
+            self.bg_layer = QgsRasterLayer("url=https://vm0160.kaj.pouta.csc.fi/ogiir_cache/wmts/1.0.0/" +
                        "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
                        "png&layers=" + layer_name.lower() + "&styles=default&tileMatrixSet=GRIDI-FIN", 
                        'GEOCUBES BG-LAYER - TEMPORARY', 'wms')
