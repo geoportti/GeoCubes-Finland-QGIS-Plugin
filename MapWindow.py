@@ -165,11 +165,11 @@ class MapWindow(QMainWindow):
         
         # set layer to canvas
         """
-        url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
+        url = ("https://vm0160.kaj.pouta.csc.fi/geoserver/ows?service=wfs&version=2.0.0"+ 
         "&request=GetFeature&typename=ogiir:maakuntajako_2018_4500k&pagingEnabled=true")
         self.bg_layer = QgsVectorLayer(url, "BACKGROUND-REMOVE", "WFS")
         """
-        self.bg_layer = QgsRasterLayer("url=http://86.50.168.160/ogiir_cache/wmts/1.0.0/" +
+        self.bg_layer = QgsRasterLayer("url=https://vm0160.kaj.pouta.csc.fi/ogiir_cache/wmts/1.0.0/" +
                        "WMTSCapabilities.xml&crs=EPSG:3067&dpiMode=7&format=image/"+
                        "png&layers=taustakartta&styles=default&tileMatrixSet=GRIDI-FIN", 
                        'GEOCUBES BG-LAYER - TEMPORARY', 'wms')

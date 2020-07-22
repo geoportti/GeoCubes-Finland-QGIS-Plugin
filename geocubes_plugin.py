@@ -932,10 +932,10 @@ class GeocubesPlugin:
         # create a string to fetch the correct data
         area_name = "ogiir:" + self.admin_area.lower()
         if self.admin_area != "Blocks":
-            area_name = area_name + "_2018_4500k"
+            area_name = area_name + "_4500k"
         
         self.busy_dialog.show()
-        url = ("http://86.50.168.160/geoserver/ows?service=wfs&version=2.0.0"+ 
+        url = ("https://vm0160.kaj.pouta.csc.fi/geoserver/ows?service=wfs&version=2.0.0"+ 
         "&request=GetFeature&typename="+area_name+"&pagingEnabled=true")
         
         # pass url, label and data provider
@@ -1198,7 +1198,7 @@ class GeocubesPlugin:
             self.proj_crs = QgsCoordinateReferenceSystem('EPSG:3067')
             
             # current base url (shared by all queries) of the Geocubes project. Modify if url changes
-            self.url_base = "http://86.50.168.160/geocubes"
+            self.url_base = "https://vm0160.kaj.pouta.csc.fi/geocubes"
 
             
             # box housing a drop-down list of possible raster resolutions
